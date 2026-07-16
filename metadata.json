@@ -1,0 +1,6 @@
+{
+  "name": "Barberhouse Admin Console",
+  "description": "A premium high-fidelity administration portal for modern barber salons, featuring live appointment queue management, staff rosters, service directories, and customer loyalty adjustments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
