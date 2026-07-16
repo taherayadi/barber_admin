@@ -27,6 +27,7 @@ import {
   MessageSquare,
   Sparkles
 } from 'lucide-react';
+import { useT } from '../i18n';
 import { User, Barber, ServiceItem, Appointment, Review, Notification, ServiceCategory, Promotion } from '../types';
 import { SERVICES } from '../data';
 
@@ -67,6 +68,7 @@ export default function ClientApp({
   promotions = [],
   onUsePromotion = () => {}
 }: ClientAppProps) {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<'home' | 'book' | 'history' | 'notifications'>('home');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   
@@ -110,11 +112,11 @@ export default function ClientApp({
   }, [selectedService?.id, selectedBarber?.id]);
 
   // Time slots helper
-  const availableDates = [
-    { label: 'Today', value: new Date().toISOString().split('T')[0] },
-    { label: 'Tomorrow', value: new Date(Date.now() + 86400000).toISOString().split('T')[0] },
-    { label: 'Day After', value: new Date(Date.now() + 172800000).toISOString().split('T')[0] }
-  ];
+   const availableDates = [
+     { label: t('Today'), value: new Date().toISOString().split('T')[0] },
+     { label: t('Tomorrow'), value: new Date(Date.now() + 86400000).toISOString().split('T')[0] },
+     { label: t('Day After'), value: new Date(Date.now() + 172800000).toISOString().split('T')[0] }
+   ];
 
   // Map state values
   const unreadCount = notifications.filter(n => n.clientId === user.id && !n.read).length;
@@ -253,13 +255,13 @@ export default function ClientApp({
       {/* PHONE STATUS REPLICATOR BAR - To make it look like a real Android application */}
       <div className="bg-[#0b0f19] text-slate-400 text-[11px] px-6 pt-3 pb-1 flex justify-between items-center select-none font-mono border-b border-white/5 shrink-0">
         <span className="font-bold text-slate-200">09:41</span>
-        <div className="flex items-center gap-1.5 text-slate-400">
-          <span>5G</span>
-          <div className="h-2 w-3.5 bg-slate-400 rounded-sm relative">
-            <span className="absolute right-[-2px] top-[2px] h-1 w-0.5 bg-slate-400 rounded-sm"></span>
-          </div>
-          <span className="text-[10px]">98%</span>
-        </div>
+         <div className="flex items-center gap-1.5 text-slate-400">
+           <span>{t('5G')}</span>
+           <div className="h-2 w-3.5 bg-slate-400 rounded-sm relative">
+             <span className="absolute right-[-2px] top-[2px] h-1 w-0.5 bg-slate-400 rounded-sm"></span>
+           </div>
+           <span className="text-[10px]">{t('98%')}</span>
+         </div>
       </div>
 
       {/* HEADER SECTION */}
@@ -271,7 +273,7 @@ export default function ClientApp({
             className="w-10 h-10 rounded-full border-2 border-amber-500 shadow-md ring-4 ring-amber-500/10 object-cover"
           />
           <div>
-            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">Welcome back</span>
+            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">{t('Welcome back')}</span>
             <h2 className="text-sm font-extrabold text-slate-100 mt-[-2px]">{user.name}</h2>
           </div>
         </div>
@@ -295,7 +297,7 @@ export default function ClientApp({
           {/* Logout Button */}
           <button
             onClick={onLogout}
-            title="Log Out"
+            title={t('Log Out')}
             className="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-700/60 text-rose-450 transition-colors cursor-pointer border-none"
           >
             <LogOut className="h-4.5 w-4.5" />
@@ -321,10 +323,10 @@ export default function ClientApp({
               {promotions.length > 0 && (
                 <div className="space-y-2.5">
                   <div className="flex justify-between items-center px-1">
-                    <h3 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest flex items-center gap-1 font-mono">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-ping"></span>
-                      Exclusive Store Special Offers [{promotions.length}]
-                    </h3>
+                      <h3 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest flex items-center gap-1 font-mono">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-ping"></span>
+                        {t('Exclusive Store Special Offers')} [{promotions.length}]
+                      </h3>
                     <div className="flex gap-1">
                       {promotions.map((_, idx) => (
                         <button
@@ -374,7 +376,7 @@ export default function ClientApp({
                               </span>
                               {slotsLeft <= 5 && slotsLeft > 0 && (
                                 <span className="px-2 py-0.5 bg-rose-950/90 border border-rose-500/30 text-rose-450 text-[8px] font-black uppercase rounded-md tracking-wider font-mono">
-                                  🔥 Selling out fast!
+                                  {t('🔥 Selling out fast!')}
                                 </span>
                               )}
                             </div>
@@ -395,9 +397,9 @@ export default function ClientApp({
                                     style={{ width: `${percentClaimed}%` }}
                                   />
                                 </div>
-                                <span className="text-slate-400 font-mono scale-90 origin-right">
-                                  {slotsLeft > 0 ? `${slotsLeft} of ${promo.bookingLimit} spots remaining` : 'Full / Limit reached'}
-                                </span>
+                               <span className="text-slate-400 font-mono scale-90 origin-right">
+                                 {slotsLeft > 0 ? t('{slotsLeft} of {bookingLimit} spots remaining', { slotsLeft, bookingLimit: promo.bookingLimit }) : t('Full / Limit reached')}
+                               </span>
                               </div>
                             </div>
                           </div>
@@ -420,19 +422,19 @@ export default function ClientApp({
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="px-2.5 py-1 bg-amber-500/10 text-amber-500 font-mono text-[9px] uppercase font-bold rounded-full tracking-wider border border-amber-500/20">
-                      VVIP Loyalty Club
+                      {t('VVIP Loyalty Club')}
                     </span>
                     <div className="mt-3.5 space-y-1">
                       <p className="text-2xl font-black font-sans text-white tracking-tight flex items-baseline gap-1.5">
                         {userLoyaltyPoints}{' '}
-                        <span className="text-xs font-semibold text-slate-400 font-sans tracking-normal">points</span>
+                        <span className="text-xs font-semibold text-slate-400 font-sans tracking-normal">{t('points')}</span>
                       </p>
                       <p className="text-[10px] text-slate-450 font-mono flex items-center gap-1.5 flex-wrap">
                         <span className="px-1.5 py-0.5 bg-slate-950/80 text-amber-500 font-black rounded-lg border border-slate-850">
-                          Est. Value: ${(userLoyaltyPoints * pointValue).toFixed(2)} USD
+                           {t('Est. Value')}: ${(userLoyaltyPoints * pointValue).toFixed(2)} {t('USD')}
                         </span>
                         <span className="text-slate-600">•</span>
-                        <span className="text-slate-500 font-medium">1 PT = ${pointValue.toFixed(4).replace(/\.?0+$/, '')}</span>
+                         <span className="text-slate-500 font-medium">{t('1 PT')} = ${pointValue.toFixed(4).replace(/\.?0+$/, '')}</span>
                       </p>
                     </div>
                   </div>
@@ -443,8 +445,8 @@ export default function ClientApp({
 
                 <div className="mt-5 space-y-2">
                   <div className="flex justify-between text-xs font-medium text-slate-400">
-                    <span>Progress to free treatment</span>
-                    <span>{userLoyaltyPoints}/{nextTierPoints} PTS</span>
+                    <span>{t('Progress to free treatment')}</span>
+                    <span>{userLoyaltyPoints}/{nextTierPoints} {t('PTS')}</span>
                   </div>
                   <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
                     <div 
@@ -452,12 +454,12 @@ export default function ClientApp({
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
-                    {userLoyaltyPoints >= nextTierPoints 
-                      ? "🎉 You have enough points! Redeem points during your next booking."
-                      : `Earn ${nextTierPoints - userLoyaltyPoints} more points to get a free service of your choosing!`
-                    }
-                  </p>
+                   <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
+                     {userLoyaltyPoints >= nextTierPoints 
+                       ? t("🎉 You have enough points! Redeem points during your next booking.")
+                       : t('Earn {points} more points to get a free service of your choosing!', { points: nextTierPoints - userLoyaltyPoints })
+                     }
+                   </p>
                 </div>
               </div>
 
@@ -467,14 +469,14 @@ export default function ClientApp({
                 className="w-full py-4.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black tracking-wide text-xs uppercase rounded-2xl shadow-lg shadow-amber-950/20 flex items-center justify-center gap-2 cursor-pointer border-none transition-transform active:scale-[0.98]"
               >
                 <Scissors className="h-4 w-4 stroke-[2.5]" />
-                <span>Reserve Appointment Slot</span>
+                 <span>{t('Reserve Appointment Slot')}</span>
               </button>
 
               {/* BARBERS LIST */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Our Elite Barbers</h3>
-                  <span className="text-[10px] text-amber-500 font-semibold font-mono">Tap for biography</span>
+                  <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">{t('Our Elite Barbers')}</h3>
+                  <span className="text-[10px] text-amber-500 font-semibold font-mono">{t('Tap for biography')}</span>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3">
@@ -501,9 +503,9 @@ export default function ClientApp({
                           <span className="text-xs font-bold text-slate-200">
                             {barber.rating.toFixed(1)}
                           </span>
-                          <span className="text-[10px] text-slate-500">
-                            ({barber.reviewsCount} reviews)
-                          </span>
+                           <span className="text-[10px] text-slate-500">
+                             ({barber.reviewsCount} {t('reviews')})
+                           </span>
                         </div>
                       </div>
                       <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-slate-400 transition-colors" />
@@ -515,7 +517,7 @@ export default function ClientApp({
               {/* DYNAMIC CATEGORIES SCROLLER */}
               {categories.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase font-mono">Service Segments</h3>
+                   <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase font-mono">{t('Service Segments')}</h3>
                   <div className="flex gap-2 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth">
                     <button
                       type="button"
@@ -525,9 +527,9 @@ export default function ClientApp({
                           ? 'bg-amber-500 border-amber-500 text-slate-950 shadow-md'
                           : 'bg-slate-900/45 border-slate-850 text-slate-400 hover:text-slate-200'
                       }`}
-                    >
-                      All Services
-                    </button>
+                     >
+                       {t('All Services')}
+                     </button>
                     {categories.map((cat) => (
                       <button
                         key={cat.id}
@@ -548,7 +550,7 @@ export default function ClientApp({
 
               {/* SERVICES MINI GRID */}
               <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Premium Operations</h3>
+                 <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">{t('Premium Operations')}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {filteredServices.map((s) => (
                     <div
@@ -571,7 +573,7 @@ export default function ClientApp({
                         <span className="text-xs font-extrabold text-amber-500">${s.price}</span>
                         <div className="flex flex-col items-end">
                           <span className="text-[9px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded">
-                            +{s.pointsGiven} PTS
+                             +{s.pointsGiven} {t('PTS')}
                           </span>
                           <span className="text-[8px] font-mono text-slate-500 scale-[0.9] origin-right mt-0.5">
                             val. ${(s.pointsGiven * pointValue).toFixed(2)}
@@ -583,7 +585,7 @@ export default function ClientApp({
                 </div>
 
                 {filteredServices.length === 0 && (
-                  <p className="text-center font-bold text-slate-500 italic text-[10px] py-4">No treatments or services registered in this category.</p>
+                   <p className="text-center font-bold text-slate-500 italic text-[10px] py-4">{t('No treatments or services registered in this category.')}</p>
                 )}
               </div>
             </motion.div>
@@ -600,14 +602,14 @@ export default function ClientApp({
               className="space-y-4"
             >
               <div className="flex items-center gap-1.5 mb-2">
-                <h3 className="text-sm font-bold text-slate-350 tracking-wide uppercase">Request Custom Appointment</h3>
+                 <h3 className="text-sm font-bold text-slate-350 tracking-wide uppercase">{t('Request Custom Appointment')}</h3>
               </div>
 
               {appliedPromo && (
                 <div className="p-3 bg-amber-500/10 border border-amber-500/25 text-amber-400 rounded-2xl flex items-center justify-between text-xs font-medium font-sans">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-amber-500 shrink-0 animate-pulse" />
-                    <span>Promo Applied: <strong className="text-white uppercase px-1.5 py-0.5 bg-amber-500 text-slate-950 rounded-md font-mono font-black text-[10px]">{appliedPromo.discount}</strong> on checkout</span>
+                     <span>{t('Promo Applied:')} <strong className="text-white uppercase px-1.5 py-0.5 bg-amber-500 text-slate-950 rounded-md font-mono font-black text-[10px]">{appliedPromo.discount}</strong> {t('on checkout')}</span>
                   </div>
                   <button
                     type="button"
@@ -623,9 +625,9 @@ export default function ClientApp({
                 
                 {/* 1. SELECT SERVICE */}
                 <div className="p-4 bg-slate-900/40 border border-slate-850 rounded-2xl space-y-3">
-                  <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-                    1. Select Operation
-                  </label>
+                   <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
+                     {t('1. Select Operation')}
+                   </label>
                   <div className="space-y-2">
                     {services.map((s) => (
                       <div
@@ -643,11 +645,11 @@ export default function ClientApp({
                       >
                         <div className="flex-1 pr-3">
                           <h4 className="text-xs font-bold text-slate-200">{s.name}</h4>
-                          <span className="text-[10px] text-slate-500">{s.duration} min duration</span>
+                           <span className="text-[10px] text-slate-500">{s.duration} {t('min duration')}</span>
                         </div>
                         <div className="text-right shrink-0">
                           <span className="text-xs font-black text-amber-500 block">${s.price}</span>
-                          <span className="text-[9px] text-slate-500 font-mono">Redeem with {getServicePointsCost(s)} PTS</span>
+                            <span className="text-[9px] text-slate-500 font-mono">{t('Redeem with')} {getServicePointsCost(s)} {t('PTS')}</span>
                           <span className="text-[8px] text-slate-500/80 font-mono block">Valued: ${(getServicePointsCost(s) * pointValue).toFixed(2)}</span>
                         </div>
                       </div>
@@ -662,9 +664,9 @@ export default function ClientApp({
                     animate={{ opacity: 1, y: 0 }}
                     className="p-4 bg-slate-900/40 border border-slate-850 rounded-2xl space-y-3"
                   >
-                    <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-                      2. Choose Stylist
-                    </label>
+                     <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
+                       {t('2. Choose Stylist')}
+                     </label>
                     <div className="grid grid-cols-2 gap-2.5">
                       {(() => {
                         const qualifiedBarbers = barbers.filter((b) => {
@@ -673,9 +675,9 @@ export default function ClientApp({
                         });
                         if (qualifiedBarbers.length === 0) {
                           return (
-                            <p className="col-span-2 text-center text-xs text-slate-500 py-3.5 font-sans">
-                              No stylist is qualified to perform this service currently.
-                            </p>
+                             <p className="col-span-2 text-center text-xs text-slate-500 py-3.5 font-sans">
+                               {t('No stylist is qualified to perform this service currently.')}
+                             </p>
                           );
                         }
                         return qualifiedBarbers.map((b) => (
@@ -716,9 +718,9 @@ export default function ClientApp({
                     className="p-4 bg-slate-900/40 border border-slate-850 rounded-2xl space-y-4"
                   >
                     <div className="space-y-2">
-                      <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-                        3. Appointment Date
-                      </label>
+                       <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
+                         {t('3. Appointment Date')}
+                       </label>
                       <div className="grid grid-cols-3 gap-2">
                         {availableDates.map((dateObj) => {
                           const isInRange = !appliedPromo || (dateObj.value >= appliedPromo.startDate && dateObj.value <= appliedPromo.endDate);
@@ -742,9 +744,9 @@ export default function ClientApp({
                               <span className="text-[10px] font-bold text-slate-400 block">{dateObj.label}</span>
                               <span className="text-[9px] text-slate-500 block">{formatDateLabel(dateObj.value)}</span>
                               {!isInRange && (
-                                <span className="text-[7.5px] text-rose-500/95 font-mono font-bold block mt-1 leading-none uppercase">
-                                  No promo range
-                                </span>
+                                 <span className="text-[7.5px] text-rose-500/95 font-mono font-bold block mt-1 leading-none uppercase">
+                                   {t('No promo range')}
+                                 </span>
                               )}
                             </button>
                           );
@@ -754,9 +756,9 @@ export default function ClientApp({
 
                     {selectedDate && (
                       <div className="space-y-2">
-                        <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-                          4. Available Hours
-                        </label>
+                         <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
+                           {t('4. Available Hours')}
+                         </label>
                         <div className="grid grid-cols-4 gap-1.5">
                           {selectedBarber.availableTimes.map((timeSlot) => {
                             const isReserved = appointments.some(
@@ -780,9 +782,9 @@ export default function ClientApp({
                                 }`}
                               >
                                 {timeSlot}
-                                {isReserved && (
-                                  <span className="sr-only"> (Reserved)</span>
-                                )}
+                                 {isReserved && (
+                                   <span className="sr-only"> {t('(Reserved)')}</span>
+                                 )}
                               </button>
                             );
                           })}
@@ -799,21 +801,21 @@ export default function ClientApp({
                     animate={{ opacity: 1, scale: 1 }}
                     className="p-4 bg-slate-900 border border-amber-500/20 rounded-2xl space-y-4 shadow-xl"
                   >
-                    <h4 className="text-xs font-bold text-slate-350 tracking-wider uppercase border-b border-slate-800 pb-2">
-                      Booking Information Invoice
-                    </h4>
-                    
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Treatment</span>
-                        <span className="font-semibold text-slate-200">{selectedService.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Barber Master</span>
-                        <span className="font-semibold text-slate-200">{selectedBarber.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Date & Hour</span>
+                     <h4 className="text-xs font-bold text-slate-350 tracking-wider uppercase border-b border-slate-800 pb-2">
+                       {t('Booking Information Invoice')}
+                     </h4>
+                     
+                     <div className="space-y-2 text-xs">
+                       <div className="flex justify-between">
+                         <span className="text-slate-400">{t('Treatment')}</span>
+                         <span className="font-semibold text-slate-200">{selectedService.name}</span>
+                       </div>
+                       <div className="flex justify-between">
+                         <span className="text-slate-400">{t('Barber Master')}</span>
+                         <span className="font-semibold text-slate-200">{selectedBarber.name}</span>
+                       </div>
+                       <div className="flex justify-between">
+                         <span className="text-slate-400">{t('Date & Hour')}</span>
                         <span className="font-semibold text-amber-400 font-mono">
                           {formatDateLabel(selectedDate)} • {selectedTime}
                         </span>
@@ -823,11 +825,11 @@ export default function ClientApp({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <Gift className="h-4 w-4 text-amber-500" />
-                          <span className="text-xs font-bold text-slate-300">Spend loyalty points?</span>
+                           <span className="text-xs font-bold text-slate-300">{t('Spend loyalty points?')}</span>
                         </div>
-                        <span className="text-[11px] text-slate-500 font-mono font-bold">
-                          Avail: {userLoyaltyPoints} PTS (${(userLoyaltyPoints * pointValue).toFixed(2)})
-                        </span>
+                           <span className="text-[11px] text-slate-500 font-mono font-bold">
+                              {t('Avail')}: {userLoyaltyPoints} {t('PTS')} (${(userLoyaltyPoints * pointValue).toFixed(2)})
+                           </span>
                       </div>
                       
                       {/* Option 1: Redeem fully for FREE (if they have enough points for pointsCost) */}
@@ -843,14 +845,14 @@ export default function ClientApp({
                             }}
                             className="rounded border-slate-800 bg-slate-950 text-amber-500 focus:ring-amber-500/40 h-4 w-4 mt-0.5 cursor-pointer"
                           />
-                          <label htmlFor="redeem_pts" className="text-[11px] text-slate-300 cursor-pointer select-none leading-normal">
-                            Redeem <strong className="text-amber-400 font-mono">{getServicePointsCost(selectedService)} PTS</strong> <span className="text-slate-500 text-[10px] font-mono">(worth ${(getServicePointsCost(selectedService) * pointValue).toFixed(2)})</span> to get this treatment completely <strong className="text-emerald-400">FREE</strong>!
-                          </label>
+                           <label htmlFor="redeem_pts" className="text-[11px] text-slate-300 cursor-pointer select-none leading-normal">
+                                                           {t('Redeem')} <strong className="text-amber-400 font-mono">{getServicePointsCost(selectedService)} {t('PTS')}</strong> <span className="text-slate-500 text-[10px] font-mono">{t('(worth $(worth))', { worth: (getServicePointsCost(selectedService) * pointValue).toFixed(2) })}</span> {t('to get this treatment completely')} <strong className="text-emerald-400">{t('FREE')}</strong>!
+                           </label>
                         </div>
                       ) : (
-                        <div className="p-2 bg-slate-900 border border-slate-850 rounded-xl text-[10px] text-slate-500 leading-normal">
-                          Requires {getServicePointsCost(selectedService)} PTS to redeem fully free (You are currently short {getServicePointsCost(selectedService) - userLoyaltyPoints} PTS).
-                        </div>
+                         <div className="p-2 bg-slate-900 border border-slate-850 rounded-xl text-[10px] text-slate-500 leading-normal">
+                            {t('Requires {pts} {ptsLabel} to redeem fully free (You are currently short {short} {ptsLabel}).', { pts: getServicePointsCost(selectedService), short: getServicePointsCost(selectedService) - userLoyaltyPoints, ptsLabel: t('PTS') })}
+                         </div>
                       )}
 
                       {/* Option 2: Apply partial loyalty cash rewards */}
@@ -873,28 +875,28 @@ export default function ClientApp({
                                 }}
                                 className="rounded border-slate-800 bg-slate-950 text-amber-500 focus:ring-amber-500/40 h-4 w-4 mt-0.5 cursor-pointer"
                               />
-                              <label htmlFor="redeem_discount" className="text-[11px] text-slate-300 cursor-pointer select-none leading-normal">
-                                Use point balance cash-in: spend <strong className="text-amber-400 font-mono">{pointsNeeded} PTS</strong> to get a direct <strong className="text-rose-400">-${actualDiscount.toFixed(2)}</strong> partial discount!
-                              </label>
+                               <label htmlFor="redeem_discount" className="text-[11px] text-slate-300 cursor-pointer select-none leading-normal">
+                                                                   {t('Use point balance cash-in: spend')} <strong className="text-amber-400 font-mono">{pointsNeeded} {t('PTS')}</strong> {t('to get a direct')} <strong className="text-rose-400">-${actualDiscount.toFixed(2)}</strong> {t('partial discount!')}
+                               </label>
                             </div>
                           );
                         })()
                       )}
 
                       {userLoyaltyPoints === 0 && (
-                        <p className="text-[10px] text-slate-500 italic text-center select-none py-1.5">
-                          No loyalty points currently available to discount this booking.
-                        </p>
+                         <p className="text-[10px] text-slate-500 italic text-center select-none py-1.5">
+                           {t('No loyalty points currently available to discount this booking.')}
+                         </p>
                       )}
                     </div>
 
                     <div className="flex justify-between items-center bg-slate-950/40 p-2.5 rounded-xl border border-slate-850">
-                      <span className="text-xs font-bold text-slate-400">Total Price Due:</span>
+                       <span className="text-xs font-bold text-slate-400">{t('Total Price Due:')}</span>
                       <span className="text-lg font-black text-white font-sans">
                         {redeemWithPoints ? (
-                          <span className="text-emerald-400 flex items-center gap-1 text-sm uppercase">
-                            <Check className="h-4 w-4 stroke-[3]" /> Free (Redeemed)
-                          </span>
+                           <span className="text-emerald-400 flex items-center gap-1 text-sm uppercase">
+                             <Check className="h-4 w-4 stroke-[3]" /> {t('Free (Redeemed)')}
+                           </span>
                         ) : redeemPointsAsDiscount ? (
                           (() => {
                             const basePriceAfterPromo = getDiscountedPrice(selectedService.price);
@@ -904,10 +906,10 @@ export default function ClientApp({
                             return (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-slate-500 line-through">${selectedService.price}</span>
-                                {appliedPromo && (
-                                  <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-sans uppercase">Promo</span>
-                                )}
-                                <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-sans uppercase">-${discount.toFixed(2)} pts</span>
+                                 {appliedPromo && (
+                                   <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-sans uppercase">{t('Promo')}</span>
+                                 )}
+                                 <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-sans uppercase">-{discount.toFixed(2)} {t('pts')}</span>
                                 <span className="text-amber-400 font-bold">${finalPrice.toFixed(2)}</span>
                               </div>
                             );
@@ -927,7 +929,7 @@ export default function ClientApp({
                       type="submit"
                       className="w-full py-4.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black tracking-wider text-xs uppercase rounded-xl cursor-pointer border-none transition-all shadow-md active:scale-95"
                     >
-                      Process & Transmit Reservation
+                       {t('Process & Transmit Reservation')}
                     </button>
                   </motion.div>
                 )}
@@ -945,18 +947,18 @@ export default function ClientApp({
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
-              <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-2">My Reservations</h3>
+               <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-2">{t('My Reservations')}</h3>
 
               {userAppointments.length === 0 ? (
                 <div className="p-8 text-center bg-slate-900/30 border border-slate-850 rounded-2xl space-y-3">
                   <Calendar className="h-8 w-8 text-slate-650 mx-auto" />
-                  <p className="text-xs text-slate-400 font-sans">You do not have any active appointments booked yet.</p>
-                  <button
-                    onClick={() => setActiveTab('book')}
-                    className="p-2 px-4 bg-amber-500/10 text-amber-400 text-xs font-bold font-sans rounded-xl border border-amber-500/20 hover:bg-amber-500/20"
-                  >
-                    Book First Slot
-                  </button>
+                   <p className="text-xs text-slate-400 font-sans">{t('You do not have any active appointments booked yet.')}</p>
+                   <button
+                     onClick={() => setActiveTab('book')}
+                     className="p-2 px-4 bg-amber-500/10 text-amber-400 text-xs font-bold font-sans rounded-xl border border-amber-500/20 hover:bg-amber-500/20"
+                   >
+                     {t('Book First Slot')}
+                   </button>
                 </div>
               ) : (
                 <div className="space-y-3.5">
@@ -979,14 +981,14 @@ export default function ClientApp({
                               ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
                               : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
                           }`}>
-                            {app.status}
-                          </span>
+                             {t(app.status)}
+                           </span>
                         </div>
 
                         <div className="space-y-1.5">
-                          <span className="text-[10px] text-slate-500 font-bold font-mono">ID: {app.id.toUpperCase()}</span>
+                           <span className="text-[10px] text-slate-500 font-bold font-mono">{t('ID')}: {app.id.toUpperCase()}</span>
                           <h4 className="text-sm font-extrabold text-slate-250 leading-snug">{app.service.name}</h4>
-                          <p className="text-xs text-slate-400">Stylist: <span className="font-semibold text-slate-200">{app.barberName}</span></p>
+                           <p className="text-xs text-slate-400">{t('Stylist')}: <span className="font-semibold text-slate-200">{app.barberName}</span></p>
                           <p className="text-xs text-slate-400 flex items-center gap-1">
                             <Clock className="h-3 w-3 text-amber-500" />
                             <span className="font-semibold text-slate-200 font-mono">
@@ -997,9 +999,9 @@ export default function ClientApp({
 
                         <div className="flex justify-between items-center mt-4 pt-3.5 border-t border-slate-900/80">
                           <div>
-                            <span className="text-[10px] text-slate-500 block">Payment Method</span>
+                             <span className="text-[10px] text-slate-500 block">{t('Payment Method')}</span>
                             <span className="text-xs font-black text-slate-100">
-                              {app.price === 0 ? 'Loyalty Points Redeemed' : `$${app.price} Visa Inc.`}
+                              {app.price === 0 ? t('Loyalty Points Redeemed') : `$${app.price} ${t('Visa Inc.')}`}
                             </span>
                           </div>
                           
@@ -1009,13 +1011,13 @@ export default function ClientApp({
                               onClick={() => handleOpenReviewModal(app.barberId, app.id)}
                               className="py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-sans font-bold text-[10px] uppercase rounded-lg border-none cursor-pointer tracking-wider flex items-center gap-1 transition-colors"
                             >
-                              <Star className="h-3 w-3 fill-slate-950 text-slate-950" /> Rate Barber
+                               <Star className="h-3 w-3 fill-slate-950 text-slate-950" /> {t('Rate Barber')}
                             </button>
                           )}
 
                           {app.status === 'completed' && app.rated && (
                             <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center gap-1 border border-emerald-500/20">
-                              <Check className="h-3 w-3" /> Reviewed
+                               <Check className="h-3 w-3" /> {t('Reviewed')}
                             </span>
                           )}
 
@@ -1024,7 +1026,7 @@ export default function ClientApp({
                               onClick={() => onCancelAppointment(app.id)}
                               className="py-1 px-2.5 bg-rose-500/10 border border-rose-500/25 hover:bg-rose-500/25 text-rose-450 font-semibold text-[10px] rounded-lg cursor-pointer"
                             >
-                              Request Cancellation
+                               {t('Request Cancellation')}
                             </button>
                           )}
                         </div>
@@ -1046,14 +1048,14 @@ export default function ClientApp({
               className="space-y-4"
             >
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Android System Notifications</h3>
-                <span className="text-[10px] text-slate-500 font-mono">In-App Recipient</span>
+                 <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">{t('Android System Notifications')}</h3>
+                 <span className="text-[10px] text-slate-500 font-mono">{t('In-App Recipient')}</span>
               </div>
 
               {notifications.filter(n => n.clientId === user.id).length === 0 ? (
                 <div className="p-8 text-center bg-slate-900/30 border border-slate-850 rounded-2xl">
                   <Bell className="h-8 w-8 text-slate-700 mx-auto mb-2" />
-                  <p className="text-xs text-slate-400 font-sans">You have no notification notifications at this moment.</p>
+                   <p className="text-xs text-slate-400 font-sans">{t('You have no notification notifications at this moment.')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1103,7 +1105,7 @@ export default function ClientApp({
               className="w-full bg-[#0d1321] border-t border-slate-800 p-6 rounded-t-[32px] space-y-4"
             >
               <div className="flex justify-between items-center">
-                <h3 className="text-md font-bold text-slate-100">Rate Your Stylist</h3>
+                 <h3 className="text-md font-bold text-slate-100">{t('Rate Your Stylist')}</h3>
                 <button
                   type="button"
                   onClick={() => {
@@ -1129,7 +1131,7 @@ export default function ClientApp({
               </div>
 
               <div className="text-center space-y-2 py-2">
-                <p className="text-xs text-slate-400">How would you rate the precision of your cut?</p>
+                 <p className="text-xs text-slate-400">{t('How would you rate the precision of your cut?')}</p>
                 <div className="flex justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((starValue) => (
                     <button
@@ -1152,16 +1154,16 @@ export default function ClientApp({
 
               <form onSubmit={handleSubmitReview} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                    Tell us more (Optional)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={reviewComment}
-                    onChange={(e) => setReviewComment(e.target.value)}
-                    placeholder="E.g., Marcus was extremely professional and gave me a world class scissor skin fade! Guaranteed to visit again."
-                    className="block w-full p-3.5 bg-slate-950/60 border border-slate-850 focus:border-amber-500/60 focus:outline-none focus:ring-1 focus:ring-amber-500/40 rounded-xl text-xs text-slate-200 placeholder-slate-650"
-                  />
+                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                     {t('Tell us more (Optional)')}
+                   </label>
+                   <textarea
+                     rows={3}
+                     value={reviewComment}
+                     onChange={(e) => setReviewComment(e.target.value)}
+                     placeholder={t('E.g., Marcus was extremely professional and gave me a world class scissor skin fade! Guaranteed to visit again.')}
+                     className="block w-full p-3.5 bg-slate-950/60 border border-slate-850 focus:border-amber-500/60 focus:outline-none focus:ring-1 focus:ring-amber-500/40 rounded-xl text-xs text-slate-200 placeholder-slate-650"
+                   />
                 </div>
 
                 <div className="flex gap-3">
@@ -1171,16 +1173,16 @@ export default function ClientApp({
                       setReviewModalBarber(null);
                       setReviewAppointmentId(null);
                     }}
-                    className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl cursor-pointer border-none"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black tracking-wider text-xs uppercase rounded-xl cursor-pointer border-none"
-                  >
-                    Submit Review & Rate
-                  </button>
+                     className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl cursor-pointer border-none"
+                   >
+                     {t('Cancel')}
+                   </button>
+                   <button
+                     type="submit"
+                     className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black tracking-wider text-xs uppercase rounded-xl cursor-pointer border-none"
+                   >
+                     {t('Submit Review & Rate')}
+                   </button>
                 </div>
               </form>
             </motion.div>
@@ -1221,12 +1223,12 @@ export default function ClientApp({
 
               {/* Qualifications / Allowed Operations */}
               <div className="space-y-1.5">
-                <h4 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Qualified Operations</h4>
+                 <h4 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">{t('Qualified Operations')}</h4>
                 <div className="flex flex-wrap gap-1">
                   {!detailBarber.servicesAllowed || detailBarber.servicesAllowed.length === 0 ? (
-                    <span className="text-[9px] bg-slate-950/40 border border-slate-900 text-slate-400 px-2 py-0.5 rounded-md font-sans">
-                      All Standard Operations
-                    </span>
+                     <span className="text-[9px] bg-slate-950/40 border border-slate-900 text-slate-400 px-2 py-0.5 rounded-md font-sans">
+                       {t('All Standard Operations')}
+                     </span>
                   ) : (
                     detailBarber.servicesAllowed.map((sid) => {
                       const s = services.find((srv) => srv.id === sid);
@@ -1241,10 +1243,10 @@ export default function ClientApp({
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Barbershop Log Reviews</h4>
+                 <h4 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">{t('Barbershop Log Reviews')}</h4>
                 <div className="max-h-32 overflow-y-auto space-y-2 pr-1 custom-scroll">
                   {reviews.filter(r => r.barberId === detailBarber.id).length === 0 ? (
-                    <p className="text-[10px] text-slate-500 text-center py-2">No reviews filed yet. Be the first!</p>
+                     <p className="text-[10px] text-slate-500 text-center py-2">{t('No reviews filed yet. Be the first!')}</p>
                   ) : (
                     reviews
                       .filter(r => r.barberId === detailBarber.id)
@@ -1272,7 +1274,7 @@ export default function ClientApp({
                 }}
                 className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-[#0d1321] font-black text-xs uppercase tracking-wide rounded-xl border-none cursor-pointer"
               >
-                Book with {detailBarber.name}
+                 {t('Book with')} {detailBarber.name}
               </button>
             </motion.div>
           </div>
@@ -1315,9 +1317,9 @@ export default function ClientApp({
 
                 <div className="p-5 space-y-4 overflow-y-auto custom-scroll flex-1">
                   <div className="space-y-1">
-                    <span className="text-[9px] text-amber-500 font-extrabold uppercase tracking-widest font-mono block">
-                      Limited Time VIP Campaign
-                    </span>
+                     <span className="text-[9px] text-amber-500 font-extrabold uppercase tracking-widest font-mono block">
+                       {t('Limited Time VIP Campaign')}
+                     </span>
                     <h3 className="text-sm font-extrabold text-slate-100 leading-snug">{detailedPromo.title}</h3>
                   </div>
 
@@ -1328,24 +1330,24 @@ export default function ClientApp({
                   {/* Campaign validity date */}
                   <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-2xl flex justify-between items-center text-[10px] text-slate-400">
                     <div className="space-y-1">
-                      <span className="text-[8px] font-bold text-slate-500 uppercase block tracking-wider font-mono">Starts</span>
+                       <span className="text-[8px] font-bold text-slate-500 uppercase block tracking-wider font-mono">{t('Starts')}</span>
                       <span className="font-mono text-slate-300 font-bold">{detailedPromo.startDate}</span>
                     </div>
                     <div className="text-slate-700 font-bold">→</div>
                     <div className="space-y-1 text-right">
-                      <span className="text-[8px] font-bold text-slate-500 uppercase block tracking-wider font-mono">Terminates</span>
+                       <span className="text-[8px] font-bold text-slate-500 uppercase block tracking-wider font-mono">{t('Terminates')}</span>
                       <span className="font-mono text-slate-300 font-bold">{detailedPromo.endDate}</span>
                     </div>
                   </div>
 
                   {/* Seat limitations remaining */}
                   <div className="space-y-1.5">
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-slate-400 font-bold font-sans">Booking Campaign Roster</span>
-                      <strong className={slotsLeft <= 5 ? 'text-rose-450 font-bold' : 'text-amber-500 font-bold'}>
-                        {slotsLeft > 0 ? `Only ${slotsLeft} of ${detailedPromo.bookingLimit} left!` : 'Campaign sold out'}
-                      </strong>
-                    </div>
+                       <div className="flex justify-between text-[10px]">
+                         <span className="text-slate-400 font-bold font-sans">{t('Booking Campaign Roster')}</span>
+                         <strong className={slotsLeft <= 5 ? 'text-rose-450 font-bold' : 'text-amber-500 font-bold'}>
+                           {slotsLeft > 0 ? t('Only {slotsLeft} of {bookingLimit} left!', { slotsLeft, bookingLimit: detailedPromo.bookingLimit }) : t('Campaign sold out')}
+                         </strong>
+                       </div>
                     <div className="h-2 w-full bg-slate-950 rounded-full border border-slate-850/35 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${slotsLeft <= 5 ? 'bg-rose-500' : 'bg-gradient-to-r from-amber-500 to-amber-600'}`}
@@ -1373,7 +1375,7 @@ export default function ClientApp({
                           : 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-lg shadow-amber-950/20'
                       }`}
                     >
-                      {slotsLeft <= 0 ? 'Offer Capacity Reached' : 'Claim & Book Special Now'}
+                       {slotsLeft <= 0 ? t('Offer Capacity Reached') : t('Claim & Book Special Now')}
                     </button>
                   </div>
                 </div>
@@ -1392,7 +1394,7 @@ export default function ClientApp({
           }`}
         >
           <Home className="h-4.5 w-4.5" />
-          <span className="text-[9px] tracking-tight">Main Hub</span>
+           <span className="text-[9px] tracking-tight">{t('Main Hub')}</span>
         </button>
 
         <button
@@ -1402,7 +1404,7 @@ export default function ClientApp({
           }`}
         >
           <Calendar className="h-4.5 w-4.5" />
-          <span className="text-[9px] tracking-tight">Reserve Slot</span>
+           <span className="text-[9px] tracking-tight">{t('Reserve Slot')}</span>
         </button>
 
         <button
@@ -1412,7 +1414,7 @@ export default function ClientApp({
           }`}
         >
           <Clock className="h-4.5 w-4.5" />
-          <span className="text-[9px] tracking-tight">Bookings</span>
+           <span className="text-[9px] tracking-tight">{t('Bookings')}</span>
         </button>
 
         <button
@@ -1430,7 +1432,7 @@ export default function ClientApp({
               <span className="absolute top-[-2px] right-[-3px] block h-1.5 w-1.5 rounded-full bg-amber-500 ring-2 ring-[#0d1321]" />
             )}
           </div>
-          <span className="text-[9px] tracking-tight">System Logs</span>
+           <span className="text-[9px] tracking-tight">{t('System Logs')}</span>
         </button>
       </nav>
 

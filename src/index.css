@@ -1,1 +1,94 @@
 @import "tailwindcss";
+
+/* ============================================================
+   Theme: dark is default (html has .dark). Light mode overrides
+   below remap the hardcoded dark color utilities to a light
+   palette. No JSX changes needed.
+   ============================================================ */
+:root {
+  color-scheme: dark;
+}
+:root.dark {
+  color-scheme: dark;
+}
+
+:root:not(.dark) {
+  color-scheme: light;
+
+  /* --- Backgrounds -> light surfaces --- */
+  .bg-\[\#03060a\] { background-color: #e2e8f0; }
+  .bg-\[\#07090e\] { background-color: #f1f5f9; }
+  .bg-\[\#07090f\] { background-color: #f1f5f9; }
+  .bg-\[\#080b12\] { background-color: #f8fafc; }
+  .bg-\[\#080c14\] { background-color: #f8fafc; }
+  .bg-\[\#090d16\] { background-color: #ffffff; }
+  .bg-\[\#0a0d16\] { background-color: #ffffff; }
+  .bg-\[\#0a0d16\]\/30 { background-color: rgba(255,255,255,0.7); }
+  .bg-\[\#0b0f19\] { background-color: #f8fafc; }
+  .bg-\[\#0b101c\] { background-color: #f8fafc; }
+  .bg-\[\#0d121c\] { background-color: #f1f5f9; }
+  .bg-\[\#0d1321\] { background-color: #f1f5f9; }
+  .bg-\[\#0d1321\]\/95 { background-color: rgba(255,255,255,0.95); }
+  .bg-slate-800 { background-color: #e2e8f0; }
+  .bg-slate-800\/60 { background-color: rgba(226,232,240,0.6); }
+  .bg-slate-800\/80 { background-color: rgba(226,232,240,0.8); }
+  .bg-slate-850 { background-color: #f1f5f9; }
+  .bg-slate-900 { background-color: #f8fafc; }
+  .bg-slate-900\/30 { background-color: rgba(248,250,252,0.7); }
+  .bg-slate-900\/35 { background-color: rgba(248,250,252,0.65); }
+  .bg-slate-900\/40 { background-color: rgba(248,250,252,0.6); }
+  .bg-slate-900\/50 { background-color: rgba(248,250,252,0.5); }
+  .bg-slate-900\/60 { background-color: rgba(248,250,252,0.4); }
+  .bg-slate-950 { background-color: #f1f5f9; }
+  .bg-slate-950\/20 { background-color: rgba(241,245,249,0.8); }
+  .bg-slate-950\/30 { background-color: rgba(241,245,249,0.7); }
+  .bg-slate-950\/40 { background-color: rgba(241,245,249,0.6); }
+  .bg-slate-950\/50 { background-color: rgba(241,245,249,0.5); }
+  .bg-slate-950\/60 { background-color: rgba(241,245,249,0.4); }
+  .bg-slate-950\/70 { background-color: rgba(241,245,249,0.3); }
+  .bg-slate-950\/80 { background-color: rgba(241,245,249,0.2); }
+  .bg-white\/5 { background-color: rgba(15,23,42,0.05); }
+
+  /* --- Text -> dark slate on light --- */
+  .text-slate-100 { color: #0f172a; }
+  .text-slate-150 { color: #0f172a; }
+  .text-slate-200 { color: #0f172a; }
+  .text-slate-250 { color: #0f172a; }
+  .text-slate-300 { color: #334155; }
+  .text-slate-350 { color: #334155; }
+  .text-slate-400 { color: #334155; }
+  .text-slate-450 { color: #334155; }
+  .text-slate-500 { color: #64748b; }
+  .text-slate-500\/80 { color: rgba(100,116,139,0.85); }
+  .text-slate-550 { color: #64748b; }
+  .text-slate-600 { color: #64748b; }
+  .text-slate-650 { color: #64748b; }
+  .text-slate-700 { color: #475569; }
+  .text-slate-50 { color: #0f172a; }
+  .text-slate-950 { color: #0f172a; }
+  .text-white { color: #0f172a; }
+  .text-\[\#0d1321\] { color: #0f172a; }
+
+  /* --- Borders -> light gray --- */
+  .border-slate-700 { border-color: #e2e8f0; }
+  .border-slate-800 { border-color: #e2e8f0; }
+  .border-slate-800\/60 { border-color: rgba(226,232,240,0.6); }
+  .border-slate-800\/80 { border-color: rgba(226,232,240,0.8); }
+  .border-slate-850 { border-color: #e2e8f0; }
+  .border-slate-850\/35 { border-color: rgba(226,232,240,0.65); }
+  .border-slate-850\/40 { border-color: rgba(226,232,240,0.6); }
+  .border-slate-850\/60 { border-color: rgba(226,232,240,0.4); }
+  .border-slate-850\/65 { border-color: rgba(226,232,240,0.35); }
+  .border-slate-900 { border-color: #e2e8f0; }
+  .border-slate-900\/80 { border-color: rgba(226,232,240,0.2); }
+  .border-white\/5 { border-color: rgba(15,23,42,0.1); }
+
+  /* --- Gradients --- */
+  .from-\[\#0b101c\] { --tw-gradient-from: #f8fafc; }
+  .from-slate-900 { --tw-gradient-from: #f1f5f9; }
+  .from-slate-950 { --tw-gradient-from: #f1f5f9; }
+  .to-\[\#121a2e\] { --tw-gradient-to: #e2e8f0; }
+  .via-slate-950\/40 { --tw-gradient-to: rgba(241,245,249,0.6); }
+  .ring-\[\#0d1321\] { --tw-ring-color: #e2e8f0; }
+  .fill-slate-950 { fill: #0f172a; }
+}

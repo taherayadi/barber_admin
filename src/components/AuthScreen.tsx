@@ -5,8 +5,9 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Scissors, Mail, Lock, User as UserIcon, LogIn, ArrowRight } from 'lucide-react';
+import { Scissors, Mail, Lock, User as UserIcon, LogIn, ArrowRight, Sun, Moon, Languages } from 'lucide-react';
 import { User } from '../types';
+import { useT, useSettings } from '../i18n';
 
 interface AuthScreenProps {
   onLogin: (user: User) => void;
@@ -14,7 +15,31 @@ interface AuthScreenProps {
   onRegister: (name: string, email: string, role: 'client' | 'admin') => void;
 }
 
+function AuthSettingsToggle() {
+  const { theme, lang, toggleTheme, setLang } = useSettings();
+  return (
+    <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-slate-950/70 backdrop-blur border border-slate-800 rounded-full p-1 shadow-lg">
+      <button
+        onClick={toggleTheme}
+        title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        className="h-8 w-8 rounded-full flex items-center justify-center text-amber-500 hover:bg-slate-800 transition-colors cursor-pointer border-none bg-transparent"
+      >
+        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </button>
+      <button
+        onClick={() => setLang(lang === 'en' ? 'fr' : 'en')}
+        title="Language"
+        className="h-8 px-2.5 rounded-full flex items-center gap-1 text-xs font-bold text-amber-500 hover:bg-slate-800 transition-colors cursor-pointer border-none bg-transparent"
+      >
+        <Languages className="h-4 w-4" />
+        {lang === 'en' ? 'EN' : 'FR'}
+      </button>
+    </div>
+  );
+}
+
 export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreenProps) {
+  const t = useT();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('password123'); // Preset for mock
@@ -31,16 +56,16 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
       if (found) {
         onLogin(found);
       } else {
-        setError('Invalid credentials. Try quick logins below for a seamless test!');
+        setError(t('Invalid credentials. Try quick logins below for a seamless test!'));
       }
     } else {
       if (!name || !email) {
-        setError('Please fill in all details.');
+        setError(t('Please fill in all details.'));
         return;
       }
       const existing = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
       if (existing) {
-        setError('A user with this email already exists.');
+        setError(t('A user with this email already exists.'));
         return;
       }
       onRegister(name, email, role);
@@ -48,8 +73,8 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
   };
 
   const handleQuickLogin = (roleType: 'client' | 'admin') => {
-    const targetEmail = roleType === 'client' 
-      ? 'taherayadi1990@gmail.com' 
+    const targetEmail = roleType === 'client'
+      ? 'taherayadi1990@gmail.com'
       : 'admin@barbershop.com';
     const found = allUsers.find(u => u.email === targetEmail);
     if (found) {
@@ -59,6 +84,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <AuthSettingsToggle />
       {/* Decorative background elements */}
       <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-amber-600/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-amber-800/10 blur-[120px] pointer-events-none" />
@@ -74,10 +100,10 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
             <Scissors className="h-8 w-8 text-slate-950 stroke-[2.5]" id="scissors-logo-btn" />
           </div>
           <h2 className="text-3xl font-extrabold font-sans tracking-tight text-slate-100">
-            The Executive Parlor
+            {t('The Executive Parlor')}
           </h2>
           <p className="mt-2 text-sm text-slate-400 font-sans">
-            Premium Salon & Barberhouse Admin Portal
+            {t('Premium Salon & Barberhouse Admin Portal')}
           </p>
         </div>
 
@@ -93,7 +119,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
               <>
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 font-sans">
-                    Full Name
+                    {t('Full Name')}
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
@@ -103,7 +129,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="E.g., Jack Pierce"
+                      placeholder={t('E.g., Jack Pierce')}
                       className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 text-slate-200 placeholder-slate-600 text-sm transition-all"
                     />
                   </div>
@@ -111,15 +137,15 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 font-sans">
-                    Account Role
+                    {t('Account Role')}
                   </label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value as 'client' | 'admin')}
                     className="block w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 text-slate-200 text-sm transition-all"
                   >
-                    <option value="admin">Administrator (Admin Panel Access)</option>
-                    <option value="client">Client Customer Profile</option>
+                    <option value="admin">{t('Administrator (Admin Panel Access)')}</option>
+                    <option value="client">{t('Client Customer Profile')}</option>
                   </select>
                 </div>
               </>
@@ -127,7 +153,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 font-sans">
-                Email Address
+                {t('Email Address')}
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
@@ -137,7 +163,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
+                  placeholder={t('name@example.com')}
                   className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 text-slate-200 placeholder-slate-600 text-sm transition-all animate-none"
                 />
               </div>
@@ -146,11 +172,11 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider font-sans">
-                  Password
+                  {t('Password')}
                 </label>
                 {isLogin && (
                   <span className="text-xs text-slate-500 cursor-not-allowed">
-                    Forgot password?
+                    {t('Forgot password?')}
                   </span>
                 )}
               </div>
@@ -175,11 +201,11 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
               {isLogin ? (
                 <>
                   <LogIn className="h-4 w-4 stroke-[2.5]" />
-                  <span>Log Into Portal</span>
+                  <span>{t('Log Into Portal')}</span>
                 </>
               ) : (
                 <>
-                  <span>Create Account</span>
+                  <span>{t('Create Account')}</span>
                   <ArrowRight className="h-4 w-4 stroke-[2.5]" />
                 </>
               )}
@@ -194,14 +220,14 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
               }}
               className="text-xs text-amber-500 hover:text-amber-400 hover:underline font-sans tracking-wide bg-transparent border-none cursor-pointer"
             >
-              {isLogin ? "Need a portal account? Create a profile" : "Already registered? Click here to Log In"}
+              {isLogin ? t("Need a portal account? Create a profile") : t("Already registered? Click here to Log In")}
             </button>
           </div>
 
           <div className="relative flex py-2 items-center">
             <div className="flex-grow border-t border-slate-800"></div>
             <span className="flex-shrink mx-4 text-slate-500 text-[10px] font-sans font-bold tracking-wider uppercase">
-              Instant Quick-Login
+              {t('Instant Quick-Login')}
             </span>
             <div className="flex-grow border-t border-slate-800"></div>
           </div>
@@ -217,17 +243,17 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
                 <UserIcon className="h-5 w-5" />
               </div>
               <span className="text-sm font-semibold text-slate-250 font-sans">
-                Barberhouse Admin
+                {t('Barberhouse Admin')}
               </span>
               <span className="text-[10.5px] text-amber-500 font-mono mt-0.5 font-bold">
-                Executive Portal
+                {t('Executive Portal')}
               </span>
             </button>
           </div>
         </div>
 
         <div className="text-center text-[11px] text-slate-600 font-sans">
-          Protected Secure Environment. Authorized Personnel Only.
+          {t('Protected Secure Environment. Authorized Personnel Only.')}
         </div>
       </motion.div>
     </div>

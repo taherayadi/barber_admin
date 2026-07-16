@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Scissors, Info } from 'lucide-react';
+import { Scissors, Info, Sun, Moon, Languages } from 'lucide-react';
 
 import { User, Appointment, Barber, Review, Notification, ServiceItem, ServiceCategory, Promotion } from './types';
 import * as api from './api';
+import { SettingsProvider, useSettings, useT } from './i18n';
 
 import AuthScreen from './components/AuthScreen';
 import NotificationBanner from './components/NotificationBanner';
@@ -28,7 +29,32 @@ function saveStoredCurrentUser(user: User | null) {
   else localStorage.removeItem(CURRENT_USER_KEY);
 }
 
-export default function App() {
+function SettingsToggle() {
+  const { theme, lang, toggleTheme, setLang } = useSettings();
+  const t = useT();
+  return (
+    <div className="fixed top-3 right-3 z-50 flex items-center gap-1.5 bg-slate-950/70 backdrop-blur border border-slate-800 rounded-full p-1 shadow-lg">
+      <button
+        onClick={toggleTheme}
+        title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        className="h-8 w-8 rounded-full flex items-center justify-center text-amber-500 hover:bg-slate-800 transition-colors cursor-pointer border-none bg-transparent"
+      >
+        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </button>
+      <button
+        onClick={() => setLang(lang === 'en' ? 'fr' : 'en')}
+        title="Language"
+        className="h-8 px-2.5 rounded-full flex items-center gap-1 text-xs font-bold text-amber-500 hover:bg-slate-800 transition-colors cursor-pointer border-none bg-transparent"
+      >
+        <Languages className="h-4 w-4" />
+        {lang === 'en' ? 'EN' : 'FR'}
+      </button>
+    </div>
+  );
+}
+
+function AppInner() {
+  const t = useT();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
@@ -91,13 +117,13 @@ export default function App() {
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     saveStoredCurrentUser(user);
-    triggerToast('Secure Entrance Verified', `Access granted as ${user.name}.`, 'system');
+    triggerToast(t('Secure Entrance Verified'), t('Access granted as {name}.', { name: user.name }), 'system');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     saveStoredCurrentUser(null);
-    triggerToast('Access Expired', 'You have successfully logged out of the parlor portal.', 'system');
+    triggerToast(t('Access Expired'), t('You have successfully logged out of the parlor portal.'), 'system');
   };
 
   const handleRegister = async (name: string, email: string, role: 'client' | 'admin') => {
@@ -129,7 +155,7 @@ export default function App() {
     };
     await api.createNotification(newNotif);
     setNotifications(prev => [...prev, newNotif]);
-    triggerToast('Appointment Approved', `Approved booking for ${app.clientName}.`, 'system');
+    triggerToast(t('Appointment Approved'), t('Approved booking for {clientName}.', { clientName: app.clientName }), 'system');
   };
 
   const handleCompleteAppointment = async (id: string) => {
@@ -164,7 +190,7 @@ export default function App() {
     await api.createNotification(notif1);
     await api.createNotification(notif2);
     setNotifications(prev => [...prev, notif1, notif2]);
-    triggerToast('Service Completed', `Marked complete. +${pointsCredited} loyalty points awarded.`, 'loyalty');
+    triggerToast(t('Service Completed'), t('Marked complete. +{pointsCredited} loyalty points awarded.', { pointsCredited }), 'loyalty');
   };
 
   const handleCancelAppointment = async (id: string) => {
@@ -183,7 +209,7 @@ export default function App() {
     };
     await api.createNotification(newNotif);
     setNotifications(prev => [...prev, newNotif]);
-    triggerToast('Booking Cancelled', `Cancelled booking for ${app.clientName}.`, 'booking');
+    triggerToast(t('Booking Cancelled'), t('Cancelled booking for {clientName}.', { clientName: app.clientName }), 'booking');
   };
 
   const handleSendCustomNotification = async (clientId: string, title: string, message: string) => {
@@ -194,7 +220,7 @@ export default function App() {
     };
     await api.createNotification(newNotif);
     setNotifications(prev => [...prev, newNotif]);
-    triggerToast('Notification Sent', 'Custom client alert sent successfully.', 'system');
+    triggerToast(t('Notification Sent'), t('Custom client alert sent successfully.'), 'system');
   };
 
   const handleUpdateClientPoints = async (userId: string, pointsDelta: number) => {
@@ -214,73 +240,74 @@ export default function App() {
     };
     await api.createNotification(newNotif);
     setNotifications(prev => [...prev, newNotif]);
-    triggerToast('Points Adjusted', 'Customer loyalty balance updated.', 'loyalty');
+    triggerToast(t('Points Adjusted'), t('Customer loyalty balance updated.'), 'loyalty');
   };
 
   const handleAddBarber = async (newBarber: Barber) => {
     await api.createBarber(newBarber);
     setBarbers(prev => [...prev, newBarber]);
-    triggerToast('Barber Added', `${newBarber.name} joined the roster.`, 'system');
+    triggerToast(t('Barber Added'), t('{newBarberName} joined the roster.', { newBarberName: newBarber.name }), 'system');
   };
 
   const handleRemoveBarber = async (id: string) => {
     const target = barbers.find(b => b.id === id);
     await api.deleteBarber(id);
     setBarbers(prev => prev.filter(b => b.id !== id));
-    if (target) triggerToast('Barber Removed', `${target.name} was removed from the roster.`, 'system');
+    if (target) triggerToast(t('Barber Removed'), t('{targetName} was removed from the roster.', { targetName: target.name }), 'system');
   };
 
   const handleAddService = async (newService: ServiceItem) => {
     await api.createService(newService);
     setServices(prev => [...prev, newService]);
-    triggerToast('Service Added', `${newService.name} has been added.`, 'system');
+    triggerToast(t('Service Added'), t('{newServiceName} has been added.', { newServiceName: newService.name }), 'system');
   };
 
   const handleRemoveService = async (id: string) => {
     const target = services.find(s => s.id === id);
     await api.deleteService(id);
     setServices(prev => prev.filter(s => s.id !== id));
-    if (target) triggerToast('Service Removed', `${target.name} has been removed.`, 'system');
+    if (target) triggerToast(t('Service Removed'), t('{targetName} has been removed.', { targetName: target.name }), 'system');
   };
 
   const handleAddCategory = async (newCategory: ServiceCategory) => {
     await api.createCategory(newCategory);
     setCategories(prev => [...prev, newCategory]);
-    triggerToast('Category Added', `Category ${newCategory.name} was added.`, 'system');
+    triggerToast(t('Category Added'), t('Category {newCategoryName} was added.', { newCategoryName: newCategory.name }), 'system');
   };
 
   const handleRemoveCategory = async (id: string) => {
     const target = categories.find(c => c.id === id);
     await api.deleteCategory(id);
     setCategories(prev => prev.filter(c => c.id !== id));
-    if (target) triggerToast('Category Removed', `Category ${target.name} was removed.`, 'system');
+    if (target) triggerToast(t('Category Removed'), t('Category {targetName} was removed.', { targetName: target.name }), 'system');
   };
 
   const handleUpdatePointValue = async (val: number) => {
     await api.updatePointValue(val);
     setPointValue(val);
-    triggerToast('Rate Updated', `Exchange rate set to $${val.toFixed(2)} per point.`, 'system');
+    triggerToast(t('Rate Updated'), t('Exchange rate set to ${val} per point.', { val: val.toFixed(2) }), 'system');
   };
 
   const handleAddPromotion = async (newPromo: Promotion) => {
     await api.createPromotion(newPromo);
     setPromotions(prev => [...prev, newPromo]);
-    triggerToast('Promo Created', `Campaign "${newPromo.title}" is now live.`, 'system');
+    triggerToast(t('Promo Created'), t('Campaign "{newPromoTitle}" is now live.', { newPromoTitle: newPromo.title }), 'system');
   };
 
   const handleRemovePromotion = async (id: string) => {
     const target = promotions.find(p => p.id === id);
     await api.deletePromotion(id);
     setPromotions(prev => prev.filter(p => p.id !== id));
-    if (target) triggerToast('Promo Removed', `Campaign "${target.title}" was removed.`, 'system');
+    if (target) triggerToast(t('Promo Removed'), t('Campaign "{targetTitle}" was removed.', { targetTitle: target.title }), 'system');
   };
 
   if (loading) {
     return (
       <div className="bg-[#07090f] text-slate-100 min-h-screen flex items-center justify-center font-sans">
+        <SettingsToggle />
         <div className="text-center">
           <Scissors className="h-10 w-10 text-amber-500 mx-auto mb-4 animate-pulse" />
-          <p className="text-sm text-slate-400 font-mono uppercase tracking-widest">Initializing Systems...</p>
+          <p className="text-sm text-slate-400 font-mono uppercase tracking-widest">{t('LIVE METRICS ACTIVE')}</p>
         </div>
       </div>
     );
@@ -288,6 +315,7 @@ export default function App() {
 
   return (
     <div className="bg-[#07090f] text-slate-100 min-h-screen relative font-sans">
+      <SettingsToggle />
       <NotificationBanner toast={activeToast} onClose={() => setActiveToast(null)} />
 
       {!currentUser ? (
@@ -325,5 +353,13 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <SettingsProvider>
+      <AppInner />
+    </SettingsProvider>
   );
 }

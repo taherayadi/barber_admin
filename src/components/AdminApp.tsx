@@ -22,6 +22,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { User, Appointment, Barber, Review, ServiceItem, ServiceCategory, Promotion } from '../types';
+import { useT } from '../i18n';
 
 interface AdminAppProps {
   currentUser: User;
@@ -76,6 +77,7 @@ export default function AdminApp({
   onAddPromotion,
   onRemovePromotion
 }: AdminAppProps) {
+  const t = useT();
   // Navigation
   const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'barbers' | 'services' | 'customers' | 'promotions'>('dashboard');
 
@@ -203,7 +205,7 @@ export default function AdminApp({
       barberCounts[a.barberName] = (barberCounts[a.barberName] || 0) + a.price;
     });
 
-    let topBarber = 'None';
+    let topBarber = t('None');
     let maxSales = -1;
     Object.entries(barberCounts).forEach(([name, sales]) => {
       if (sales > maxSales) {
@@ -344,10 +346,10 @@ export default function AdminApp({
           </div>
           <div>
             <h1 className="text-sm font-black tracking-wider uppercase text-slate-100 font-sans">
-              Barberhouse
+              {t('Barberhouse')}
             </h1>
             <p className="text-[10px] text-amber-500 font-mono tracking-widest uppercase font-bold">
-              Admin Console
+              {t('Admin Console')}
             </p>
           </div>
         </div>
@@ -363,7 +365,7 @@ export default function AdminApp({
             }`}
           >
             <TrendingUp className="h-4.5 w-4.5 text-amber-500" />
-            Performance Desk
+            {t('Performance Desk')}
           </button>
 
           <button
@@ -376,7 +378,7 @@ export default function AdminApp({
           >
             <span className="flex items-center gap-3">
               <Calendar className="h-4.5 w-4.5 text-amber-500" />
-              Bookings Queue
+              {t('Bookings Queue')}
             </span>
             {metrics.pending > 0 && (
               <span className="h-5 px-1.5 min-w-[20px] rounded-full bg-red-500 text-white font-mono text-[10px] flex items-center justify-center font-bold">
@@ -394,7 +396,7 @@ export default function AdminApp({
             }`}
           >
             <Scissors className="h-4.5 w-4.5 text-amber-500" />
-            Staff Roster
+            {t('Staff Roster')}
           </button>
 
           <button
@@ -406,7 +408,7 @@ export default function AdminApp({
             }`}
           >
             <Sliders className="h-4.5 w-4.5 text-amber-500" />
-            Service Directory
+            {t('Service Directory')}
           </button>
 
           <button
@@ -418,7 +420,7 @@ export default function AdminApp({
             }`}
           >
             <Users className="h-4.5 w-4.5 text-amber-500" />
-            Customer Registry
+            {t('Customer Registry')}
           </button>
 
           <button
@@ -430,7 +432,7 @@ export default function AdminApp({
             }`}
           >
             <Percent className="h-4.5 w-4.5 text-amber-500" />
-            Promotional Desk
+            {t('Promotional Desk')}
           </button>
         </nav>
 
@@ -442,7 +444,7 @@ export default function AdminApp({
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-200 font-sans leading-none">{currentUser.name}</p>
-              <p className="text-[10px] text-amber-500/90 font-mono mt-0.5 leading-none font-bold">Salon Executive</p>
+              <p className="text-[10px] text-amber-500/90 font-mono mt-0.5 leading-none font-bold">{t('Salon Executive')}</p>
             </div>
           </div>
           <button
@@ -450,7 +452,7 @@ export default function AdminApp({
             className="w-full py-2.5 rounded-xl border border-slate-850 hover:border-red-500/45 hover:bg-red-500/5 text-slate-400 hover:text-red-400 text-xs font-semibold uppercase tracking-wide transition-all bg-transparent cursor-pointer flex items-center justify-center gap-2"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Terminal Logout
+            {t('Terminal Logout')}
           </button>
         </div>
       </aside>
@@ -461,9 +463,9 @@ export default function AdminApp({
         {/* Top Header info */}
         <header className="h-16 border-b border-slate-850 px-8 flex items-center justify-between bg-[#0a0d16]/30 backdrop-blur shrink-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-200 font-sans">
-              {activeTab} Portal
-            </h2>
+             <h2 className="text-sm font-black uppercase tracking-widest text-slate-200 font-sans">
+               {t(activeTab + ' Portal')}
+             </h2>
             <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
           </div>
 
@@ -472,8 +474,8 @@ export default function AdminApp({
             <div className="bg-slate-950 px-3.5 py-1.5 rounded-xl border border-slate-850 flex items-center gap-3 text-xs">
               <Award className="h-3.5 w-3.5 text-amber-500" />
               <span className="font-mono text-[10.5px] text-slate-400">
-                1 Point = <strong className="text-amber-500">${pointValue.toFixed(2)}</strong> USD
-              </span>
+                 {t('1 Point =')} <strong className="text-amber-500">${pointValue.toFixed(2)}</strong> {t('USD')}
+               </span>
               <div className="flex items-center gap-1.5 ml-2 border-l border-slate-850 pl-2">
                 <button 
                   onClick={() => onUpdatePointValue(Math.max(0.01, pointValue - 0.01))}
@@ -506,15 +508,15 @@ export default function AdminApp({
                     <Sparkles className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-slate-100">Welcome to Executive Control, {currentUser.name}</h3>
+                    <h3 className="text-base font-bold text-slate-100">{t('Welcome to Executive Control,')} {currentUser.name}</h3>
                     <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                      Monitor parlor performance meters in real-time, update stylist calendars, alter prices, adjust client loyalty balances, and deploy marketing discount campaigns.
+                      {t('Monitor parlor performance meters in real-time, update stylist calendars, alter prices, adjust client loyalty balances, and deploy marketing discount campaigns.')}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 py-2 px-4 bg-slate-950 border border-slate-850 rounded-xl font-mono text-xs text-amber-500 font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block mr-1" />
-                  LIVE METRICS ACTIVE
+                  {t('LIVE METRICS ACTIVE')}
                 </div>
               </div>
 
@@ -525,11 +527,11 @@ export default function AdminApp({
                   <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-15 transition-opacity">
                     <DollarSign className="h-20 w-20 text-amber-500" />
                   </div>
-                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">Closed Sales</p>
+                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">{t('Closed Sales')}</p>
                   <p className="text-2xl font-black text-amber-500 mt-2 font-mono">${metrics.revenue.toFixed(2)}</p>
                   <div className="mt-4 flex items-center gap-1.5 text-[10px] text-emerald-400 bg-emerald-950/25 px-2 py-1 rounded-lg w-max">
                     <TrendingUp className="h-3 w-3" />
-                    +12% this week
+                    {t('+12% this week')}
                   </div>
                 </div>
 
@@ -537,10 +539,10 @@ export default function AdminApp({
                   <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-15 transition-opacity">
                     <Calendar className="h-20 w-20 text-amber-500" />
                   </div>
-                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">All Bookings</p>
+                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">{t('All Bookings')}</p>
                   <p className="text-2xl font-black text-slate-100 mt-2 font-mono">{metrics.total}</p>
                   <div className="mt-4 text-[10px] text-slate-450">
-                    <strong className="text-slate-350">{metrics.pending} pending</strong> awaiting review
+                    <strong className="text-slate-350">{metrics.pending} {t('pending')}</strong> {t('awaiting review')}
                   </div>
                 </div>
 
@@ -548,10 +550,10 @@ export default function AdminApp({
                   <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-15 transition-opacity">
                     <Users className="h-20 w-20 text-amber-500" />
                   </div>
-                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">Client accounts</p>
+                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">{t('Client accounts')}</p>
                   <p className="text-2xl font-black text-slate-100 mt-2 font-mono">{metrics.activeClients}</p>
                   <div className="mt-4 text-[10px] text-slate-450">
-                    Unique customer profiles registered
+                    {t('Unique customer profiles registered')}
                   </div>
                 </div>
 
@@ -559,10 +561,10 @@ export default function AdminApp({
                   <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-15 transition-opacity">
                     <Star className="h-20 w-20 text-amber-500" />
                   </div>
-                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">Audited Star Rating</p>
+                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">{t('Audited Star Rating')}</p>
                   <p className="text-2xl font-black text-amber-500 mt-2 font-mono">{metrics.avgRating} <span className="text-sm font-sans text-slate-550">/ 5.0</span></p>
                   <div className="mt-4 text-[10px] text-slate-450">
-                    Calculated from <strong className="text-slate-350">{reviews.length} written reviews</strong>
+                    {t('Calculated from')} <strong className="text-slate-350">{reviews.length} {t('written reviews')}</strong>
                   </div>
                 </div>
 
@@ -574,18 +576,18 @@ export default function AdminApp({
                   <div>
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
                       <DollarSign className="h-5 w-5 text-amber-500" />
-                      Closed Sales & Revenue Analysis
+                      {t('Closed Sales & Revenue Analysis')}
                     </h4>
                     <p className="text-[11px] text-slate-400 mt-1">
-                      Audit completed service logs, calculate barber splits, and filter performance revenue.
+                      {t('Audit completed service logs, calculate barber splits, and filter performance revenue.')}
                     </p>
                   </div>
                   
                   {/* Quick toggle indicator */}
                   <div className="flex gap-1 bg-slate-950 p-1.5 rounded-xl border border-slate-850">
                     <span className="text-[10px] uppercase font-mono font-bold px-2.5 py-1 text-slate-400">
-                      Total Completed: {appointments.filter(a => a.status === 'completed').length}
-                    </span>
+                       {t('Total Completed:')} {appointments.filter(a => a.status === 'completed').length}
+                     </span>
                   </div>
                 </div>
 
@@ -595,14 +597,14 @@ export default function AdminApp({
                   {/* 1. Barber Filter */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
-                      Barber / Stylist
+                      {t('Barber / Stylist')}
                     </label>
                     <select
                       value={salesBarberFilter}
                       onChange={e => setSalesBarberFilter(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
                     >
-                      <option value="all">All Barbers</option>
+                      <option value="all">{t('All Barbers')}</option>
                       {barbers.map(b => (
                         <option key={b.id} value={b.name}>{b.name}</option>
                       ))}
@@ -612,14 +614,14 @@ export default function AdminApp({
                   {/* 2. Service Category Filter */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
-                      Service Category
+                      {t('Service Category')}
                     </label>
                     <select
                       value={salesCategoryFilter}
                       onChange={e => setSalesCategoryFilter(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
                     >
-                      <option value="all">All Categories</option>
+                      <option value="all">{t('All Categories')}</option>
                       {categories.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
@@ -629,28 +631,28 @@ export default function AdminApp({
                   {/* 3. Time period Filter */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
-                      Time Frame
+                      {t('Time Frame')}
                     </label>
                     <select
                       value={salesPeriodFilter}
                       onChange={e => setSalesPeriodFilter(e.target.value as any)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
                     >
-                      <option value="all">All Time</option>
-                      <option value="today">Today (Jul 16, 2026)</option>
-                      <option value="week">This Week (Last 7 Days)</option>
-                      <option value="month">This Month (Last 30 Days)</option>
+                      <option value="all">{t('All Time')}</option>
+                      <option value="today">{t('Today (Jul 16, 2026)')}</option>
+                      <option value="week">{t('This Week (Last 7 Days)')}</option>
+                      <option value="month">{t('This Month (Last 30 Days)')}</option>
                     </select>
                   </div>
 
                   {/* 4. Search Client Query */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
-                      Client Search
+                      {t('Client Search')}
                     </label>
                     <input
                       type="text"
-                      placeholder="Name or email..."
+                      placeholder={t('Name or email...')}
                       value={salesSearchQuery}
                       onChange={e => setSalesSearchQuery(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -660,17 +662,17 @@ export default function AdminApp({
                   {/* 5. Sorting Ledger */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
-                      Sort Ledger By
+                      {t('Sort Ledger By')}
                     </label>
                     <select
                       value={salesSortOrder}
                       onChange={e => setSalesSortOrder(e.target.value as any)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
                     >
-                      <option value="newest">Newest First</option>
-                      <option value="oldest">Oldest First</option>
-                      <option value="price-desc">Highest Revenue</option>
-                      <option value="price-asc">Lowest Revenue</option>
+                      <option value="newest">{t('Newest First')}</option>
+                      <option value="oldest">{t('Oldest First')}</option>
+                      <option value="price-desc">{t('Highest Revenue')}</option>
+                      <option value="price-asc">{t('Lowest Revenue')}</option>
                     </select>
                   </div>
 
@@ -680,28 +682,28 @@ export default function AdminApp({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-amber-500/[0.02] border border-amber-500/5 rounded-2xl">
                   
                   <div className="px-4 py-3 border-r border-slate-850/65 last:border-none">
-                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">Filtered Sales Revenue</span>
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Filtered Sales Revenue')}</span>
                     <span className="text-xl font-black text-amber-500 font-mono block mt-1">
                       ${filteredSalesRevenue.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="px-4 py-3 border-r border-slate-850/65 last:border-none">
-                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">Transaction Count</span>
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Transaction Count')}</span>
                     <span className="text-xl font-black text-slate-200 font-mono block mt-1">
-                      {filteredSalesList.length} <span className="text-xs text-slate-500 font-sans font-normal">completed</span>
+                      {filteredSalesList.length} <span className="text-xs text-slate-500 font-sans font-normal">{t('completed')}</span>
                     </span>
                   </div>
 
                   <div className="px-4 py-3 border-r border-slate-850/65 last:border-none">
-                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">Average Ticket Value</span>
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Average Ticket Value')}</span>
                     <span className="text-xl font-black text-slate-200 font-mono block mt-1">
                       ${avgTicketValue.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="px-4 py-3 last:border-none">
-                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">Top Performing Barber</span>
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Top Performing Barber')}</span>
                     <span className="text-sm font-black text-amber-500 block truncate mt-1">
                       {topPerformingBarber}
                     </span>
@@ -715,20 +717,20 @@ export default function AdminApp({
                     <table className="w-full text-left border-collapse text-[11px]">
                       <thead>
                         <tr className="bg-slate-950/70 border-b border-slate-850 text-slate-450 font-mono tracking-wider uppercase">
-                          <th className="p-3 pl-5">Client Profile</th>
-                          <th className="p-3">Serviced By</th>
-                          <th className="p-3">Service Offered</th>
-                          <th className="p-3">Category</th>
-                          <th className="p-3">Execution Date</th>
-                          <th className="p-3">Point Credits</th>
-                          <th className="p-3 pr-5 text-right">Invoice Amt</th>
+                          <th className="p-3 pl-5">{t('Client Profile')}</th>
+                          <th className="p-3">{t('Serviced By')}</th>
+                          <th className="p-3">{t('Service Offered')}</th>
+                          <th className="p-3">{t('Category')}</th>
+                          <th className="p-3">{t('Execution Date')}</th>
+                          <th className="p-3">{t('Point Credits')}</th>
+                          <th className="p-3 pr-5 text-right">{t('Invoice Amt')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-850/65">
                         {filteredSalesList.length === 0 ? (
                           <tr>
                             <td colSpan={7} className="p-10 text-center text-slate-500 italic">
-                              No completed sales matches the selected filters.
+                              {t('No completed sales matches the selected filters.')}
                             </td>
                           </tr>
                         ) : (
@@ -743,7 +745,7 @@ export default function AdminApp({
                               </td>
                               <td className="p-3">
                                 <span className="text-amber-500 font-bold">{item.service.name}</span>
-                                <span className="text-[10px] text-slate-550 font-mono ml-2">({item.service.duration} mins)</span>
+                                <span className="text-[10px] text-slate-550 font-mono ml-2">({item.service.duration} {t('mins')})</span>
                               </td>
                               <td className="p-3">
                                 <span className="px-2 py-0.5 rounded-lg bg-slate-950 text-slate-400 border border-slate-850 text-[10px] font-mono">
@@ -753,9 +755,9 @@ export default function AdminApp({
                               <td className="p-3 font-mono text-slate-400">
                                 {item.date} <span className="text-slate-600 text-[10px] ml-1">{item.time}</span>
                               </td>
-                              <td className="p-3 font-mono text-emerald-400 font-bold">
-                                +{item.service.pointsGiven} PTS
-                              </td>
+                               <td className="p-3 font-mono text-emerald-400 font-bold">
+                                 +{item.service.pointsGiven} {t('PTS')}
+                               </td>
                               <td className="p-3 pr-5 text-right font-mono font-black text-amber-500">
                                 ${item.price.toFixed(2)}
                               </td>
@@ -776,23 +778,23 @@ export default function AdminApp({
                 <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850 flex flex-col h-[380px]">
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-4 flex items-center gap-2">
                     <Star className="h-4 w-4 text-amber-500" />
-                    Latest Audited Feedback
+                    {t('Latest Audited Feedback')}
                   </h4>
                   <div className="flex-1 overflow-y-auto space-y-3.5 pr-2">
                     {reviews.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
                         <Star className="h-8 w-8 opacity-25 mb-2" />
-                        <p className="text-xs">No client reviews filed yet in this ledger.</p>
+                        <p className="text-xs">{t('No client reviews filed yet in this ledger.')}</p>
                       </div>
                     ) : (
                       reviews.map(r => {
-                        const stylistName = barbers.find(b => b.id === r.barberId)?.name || 'Stylist';
+                        const stylistName = barbers.find(b => b.id === r.barberId)?.name || t('Stylist');
                         return (
                           <div key={r.id} className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl">
                             <div className="flex justify-between items-start gap-2">
                               <div>
                                 <p className="text-xs font-bold text-slate-250 leading-none">{r.clientName}</p>
-                                <p className="text-[10px] text-slate-500 mt-1">Serviced by: <strong className="text-amber-500">{stylistName}</strong></p>
+                                <p className="text-[10px] text-slate-500 mt-1">{t('Serviced by:')} <strong className="text-amber-500">{stylistName}</strong></p>
                               </div>
                               <div className="flex items-center gap-0.5 px-2 py-0.5 bg-amber-500/10 rounded-lg text-amber-400 font-bold text-[10px]">
                                 <span>{r.rating}</span>
@@ -815,17 +817,17 @@ export default function AdminApp({
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-4 flex items-center justify-between">
                     <span className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-amber-500" />
-                      Awaiting Approvals
+                      {t('Awaiting Approvals')}
                     </span>
                     <span className="text-[10px] bg-red-900/20 text-red-400 px-2 py-0.5 rounded-lg border border-red-500/20 font-mono">
-                      {metrics.pending} Pending
+                      {metrics.pending} {t('Pending')}
                     </span>
                   </h4>
                   <div className="flex-1 overflow-y-auto space-y-3.5 pr-2">
                     {appointments.filter(a => a.status === 'pending').length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
                         <Check className="h-8 w-8 text-emerald-500 opacity-30 mb-2 animate-pulse" />
-                        <p className="text-xs">Perfect! No pending bookings in the queue.</p>
+                        <p className="text-xs">{t('Perfect! No pending bookings in the queue.')}</p>
                       </div>
                     ) : (
                       appointments.filter(a => a.status === 'pending').map(a => (
@@ -833,20 +835,20 @@ export default function AdminApp({
                           <div>
                             <p className="text-xs font-bold text-slate-200 leading-none">{a.clientName}</p>
                             <p className="text-[10px] text-amber-500 mt-1">{a.service.name} • ${a.service.price}</p>
-                            <p className="text-[10px] text-slate-500 mt-0.5">With {a.barberName} on {a.date} at {a.time}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">{t('With')} {a.barberName} {t('on')} {a.date} {t('at')} {a.time}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <button
                               onClick={() => onConfirmAppointment(a.id)}
                               className="p-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 cursor-pointer"
-                              title="Approve Booking"
+                              title={t('Approve Booking')}
                             >
                               <Check className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => onCancelAppointment(a.id)}
                               className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
-                              title="Decline Booking"
+                              title={t('Decline Booking')}
                             >
                               <X className="h-4 w-4" />
                             </button>
@@ -870,7 +872,7 @@ export default function AdminApp({
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/35 p-4 rounded-2xl border border-slate-850">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-amber-500" />
-                  <span className="text-xs font-semibold text-slate-350 uppercase">Filter by Status:</span>
+                  <span className="text-xs font-semibold text-slate-350 uppercase">{t('Filter by Status:')}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map(f => (
@@ -895,20 +897,20 @@ export default function AdminApp({
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-950/50 border-b border-slate-850 text-slate-400 font-mono tracking-wider uppercase">
-                        <th className="p-4 pl-6">Client Customer</th>
-                        <th className="p-4">Requested Service</th>
-                        <th className="p-4">Barber Stylist</th>
-                        <th className="p-4">Date / Time</th>
-                        <th className="p-4">Paid Charge</th>
-                        <th className="p-4">Booking State</th>
-                        <th className="p-4 pr-6 text-right">Quick Actions</th>
+                         <th className="p-4 pl-6">{t('Client Customer')}</th>
+                         <th className="p-4">{t('Requested Service')}</th>
+                         <th className="p-4">{t('Barber Stylist')}</th>
+                         <th className="p-4">{t('Date / Time')}</th>
+                         <th className="p-4">{t('Paid Charge')}</th>
+                         <th className="p-4">{t('Booking State')}</th>
+                         <th className="p-4 pr-6 text-right">{t('Quick Actions')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-850">
                       {filteredAppointments.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="p-12 text-center text-slate-500">
-                            No appointments found with state matching "{appFilter}".
+                            {t('No appointments found with state matching')} "{appFilter}".
                           </td>
                         </tr>
                       ) : (
@@ -920,7 +922,7 @@ export default function AdminApp({
                             </td>
                             <td className="p-4">
                               <p className="font-semibold text-amber-500">{a.service.name}</p>
-                              <p className="text-[10px] text-slate-500 mt-0.5">{a.service.duration} mins duration</p>
+                               <p className="text-[10px] text-slate-500 mt-0.5">{a.service.duration} {t('mins duration')}</p>
                             </td>
                             <td className="p-4 font-medium text-slate-300">{a.barberName}</td>
                             <td className="p-4">
@@ -936,9 +938,9 @@ export default function AdminApp({
                                 a.status === 'confirmed' ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' :
                                 a.status === 'completed' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' :
                                 'bg-red-500/10 border border-red-500/20 text-red-400'
-                              }`}>
-                                {a.status}
-                              </span>
+                                 }`}>
+                                 {t(a.status)}
+                               </span>
                             </td>
                             <td className="p-4 pr-6 text-right">
                               <div className="flex items-center justify-end gap-2">
@@ -946,14 +948,14 @@ export default function AdminApp({
                                   <>
                                     <button
                                       onClick={() => onConfirmAppointment(a.id)}
-                                      className="py-1 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
-                                    >
-                                      Approve
-                                    </button>
-                                    <button
-                                      onClick={() => onCancelAppointment(a.id)}
-                                      className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
-                                      title="Cancel Reservation"
+                                       className="py-1 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
+                                     >
+                                       {t('Approve')}
+                                     </button>
+                                     <button
+                                       onClick={() => onCancelAppointment(a.id)}
+                                       className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
+                                       title={t('Cancel Reservation')}
                                     >
                                       <X className="h-4.5 w-4.5" />
                                     </button>
@@ -964,14 +966,14 @@ export default function AdminApp({
                                   <>
                                     <button
                                       onClick={() => onCompleteAppointment(a.id)}
-                                      className="py-1 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
-                                    >
-                                      Mark Complete
-                                    </button>
-                                    <button
-                                      onClick={() => onCancelAppointment(a.id)}
-                                      className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
-                                      title="Decline Reservation"
+                                       className="py-1 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
+                                     >
+                                       {t('Mark Complete')}
+                                     </button>
+                                     <button
+                                       onClick={() => onCancelAppointment(a.id)}
+                                       className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
+                                       title={t('Decline Reservation')}
                                     >
                                       <X className="h-4.5 w-4.5" />
                                     </button>
@@ -979,11 +981,11 @@ export default function AdminApp({
                                 )}
 
                                 {a.status === 'completed' && (
-                                  <span className="text-[10px] text-slate-500 font-mono font-medium">Archived Session</span>
+                                   <span className="text-[10px] text-slate-500 font-mono font-medium">{t('Archived Session')}</span>
                                 )}
 
                                 {a.status === 'cancelled' && (
-                                  <span className="text-[10px] text-red-500/50 font-mono font-medium">Cancelled</span>
+                                   <span className="text-[10px] text-red-500/50 font-mono font-medium">{t('Cancelled')}</span>
                                 )}
                               </div>
                             </td>
@@ -1006,16 +1008,16 @@ export default function AdminApp({
               <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                   <PlusCircle className="h-4 w-4 text-amber-500" />
-                  Induct New Master Barber
+                  {t('Induct New Master Barber')}
                 </h3>
                 
                 <form onSubmit={handleCreateBarber} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Full Stylist Name</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Full Stylist Name')}</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Jack Pierce"
+                      placeholder={t('e.g. Jack Pierce')}
                       value={newBarberName}
                       onChange={e => setNewBarberName(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1023,10 +1025,10 @@ export default function AdminApp({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Primary Specialty</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Primary Specialty')}</label>
                     <input
                       type="text"
-                      placeholder="e.g. Skin Fades & Shaves"
+                      placeholder={t('e.g. Skin Fades & Shaves')}
                       value={newBarberSpecialty}
                       onChange={e => setNewBarberSpecialty(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1034,10 +1036,10 @@ export default function AdminApp({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Photo Avatar URL</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Photo Avatar URL')}</label>
                     <input
                       type="text"
-                      placeholder="Unsplash image URL..."
+                      placeholder={t('Unsplash image URL...')}
                       value={newBarberAvatar}
                       onChange={e => setNewBarberAvatar(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1050,15 +1052,15 @@ export default function AdminApp({
                       className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                     >
                       <Plus className="h-4 w-4" />
-                      Add Barber
+                      {t('Add Barber')}
                     </button>
                   </div>
 
                   <div className="md:col-span-2 space-y-1 mt-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Short Professional Bio</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Short Professional Bio')}</label>
                     <input
                       type="text"
-                      placeholder="Specialized in hot towel shaves with over 10 years experience..."
+                      placeholder={t('Specialized in hot towel shaves with over 10 years experience...')}
                       value={newBarberBio}
                       onChange={e => setNewBarberBio(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1066,7 +1068,7 @@ export default function AdminApp({
                   </div>
 
                   <div className="md:col-span-2 flex flex-col gap-1 mt-1 justify-center">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Weekly Shift Slots</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">{t('Weekly Shift Slots')}</span>
                     <div className="flex gap-1.5 mt-1.5">
                       {['09:00 AM', '10:00 AM', '11:00 AM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM'].map(time => {
                         const isSel = newBarberTimes.includes(time);
@@ -1105,7 +1107,7 @@ export default function AdminApp({
                     <button
                       onClick={() => onRemoveBarber(b.id)}
                       className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer opacity-0 group-hover:opacity-100 animate-fadeIn"
-                      title="Decommission Barber"
+                      title={t('Decommission Barber')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -1133,7 +1135,7 @@ export default function AdminApp({
                               />
                             ))}
                           </div>
-                          <span className="text-[9px] text-slate-500 font-mono">({b.reviewsCount} reviews)</span>
+                           <span className="text-[9px] text-slate-500 font-mono">({b.reviewsCount} {t('reviews')})</span>
                         </div>
                       </div>
                     </div>
@@ -1144,7 +1146,7 @@ export default function AdminApp({
 
                     <div className="pt-4 border-t border-slate-850/65 space-y-3">
                       <div>
-                        <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold">Skills Catalog</span>
+                        <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold">{t('Skills Catalog')}</span>
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           <span className="px-2.5 py-0.5 rounded-lg bg-slate-950 border border-slate-850 text-slate-400 text-[10px]">
                             {b.specialty}
@@ -1153,7 +1155,7 @@ export default function AdminApp({
                       </div>
 
                       <div>
-                        <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold">Shift Hours Slots</span>
+                        <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold">{t('Shift Hours Slots')}</span>
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           {b.availableTimes.map(time => (
                             <span key={time} className="px-1.5 py-0.5 rounded-lg bg-amber-500/5 text-amber-500/90 font-mono text-[9px] border border-amber-500/10 font-bold">
@@ -1181,16 +1183,16 @@ export default function AdminApp({
                 <div className="lg:col-span-2 p-6 rounded-3xl bg-[#090d16] border border-slate-850 h-max">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                     <Sliders className="h-4 w-4 text-amber-500" />
-                    Register New Service Offering
+                    {t('Register New Service Offering')}
                   </h3>
 
                   <form onSubmit={handleCreateService} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Service Name</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Service Name')}</label>
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Classic Beard Trim"
+                        placeholder={t('e.g. Classic Beard Trim')}
                         value={newServiceName}
                         onChange={e => setNewServiceName(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1198,7 +1200,7 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Category Group</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Category Group')}</label>
                       <select
                         value={newServiceCategory}
                         onChange={e => setNewServiceCategory(e.target.value)}
@@ -1211,12 +1213,12 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Retail Price ($ USD)</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Retail Price ($ USD)')}</label>
                       <input
                         type="number"
                         step="0.50"
                         required
-                        placeholder="35.00"
+                        placeholder={t('35.00')}
                         value={newServicePrice}
                         onChange={e => setNewServicePrice(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1224,11 +1226,11 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Duration (minutes)</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Duration (minutes)')}</label>
                       <input
                         type="number"
                         required
-                        placeholder="30"
+                        placeholder={t('30')}
                         value={newServiceDuration}
                         onChange={e => setNewServiceDuration(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1236,11 +1238,11 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Loyalty Points Credited</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Loyalty Points Credited')}</label>
                       <input
                         type="number"
                         required
-                        placeholder="15"
+                        placeholder={t('15')}
                         value={newServicePoints}
                         onChange={e => setNewServicePoints(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1248,11 +1250,11 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Points Cost to Redeem</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Points Cost to Redeem')}</label>
                       <input
                         type="number"
                         required
-                        placeholder="150"
+                        placeholder={t('150')}
                         value={newServicePointsCost}
                         onChange={e => setNewServicePointsCost(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1260,10 +1262,10 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1 md:col-span-2">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Service Description</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Service Description')}</label>
                       <textarea
                         rows={2}
-                        placeholder="Precision styling with premium hot shave lathers..."
+                        placeholder={t('Precision styling with premium hot shave lathers...')}
                         value={newServiceDesc}
                         onChange={e => setNewServiceDesc(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40 resize-none"
@@ -1276,7 +1278,7 @@ export default function AdminApp({
                         className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                       >
                         <Plus className="h-4 w-4" />
-                        Create Service Entry
+                        {t('Create Service Entry')}
                       </button>
                     </div>
                   </form>
@@ -1286,16 +1288,16 @@ export default function AdminApp({
                 <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850 h-max">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                     <PlusCircle className="h-4 w-4 text-amber-500" />
-                    Create Service Category
+                    {t('Create Service Category')}
                   </h3>
 
                   <form onSubmit={handleCreateCategory} className="space-y-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Category Title</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Category Title')}</label>
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Coloring"
+                        placeholder={t('e.g. Coloring')}
                         value={newCatName}
                         onChange={e => setNewCatName(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1303,10 +1305,10 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Category Brief Description</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Category Brief Description')}</label>
                       <input
                         type="text"
-                        placeholder="Premium beard treatments and lines..."
+                        placeholder={t('Premium beard treatments and lines...')}
                         value={newCatDesc}
                         onChange={e => setNewCatDesc(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1317,12 +1319,12 @@ export default function AdminApp({
                       type="submit"
                       className="w-full py-2.5 rounded-xl border border-slate-800 hover:border-amber-500/40 text-slate-350 hover:text-amber-400 text-xs font-bold uppercase tracking-wider transition-all bg-transparent cursor-pointer"
                     >
-                      Add Category Group
+                      {t('Add Category Group')}
                     </button>
                   </form>
 
                   <div className="mt-6 border-t border-slate-850 pt-5 space-y-2">
-                    <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold block">Current Directory Categories</span>
+                    <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold block">{t('Current Directory Categories')}</span>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {categories.map(c => (
                         <div key={c.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-850 text-xs text-slate-300">
@@ -1344,7 +1346,7 @@ export default function AdminApp({
 
               {/* Service Cards Listing */}
               <div className="space-y-6">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Existing Services Menu</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{t('Existing Services Menu')}</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {services.map(s => (
@@ -1354,7 +1356,7 @@ export default function AdminApp({
                       <button
                         onClick={() => onRemoveService(s.id)}
                         className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-                        title="Delete Offering"
+                        title={t('Delete Offering')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -1369,19 +1371,19 @@ export default function AdminApp({
 
                         <h5 className="text-xs font-black uppercase tracking-wider text-slate-200 mt-2">{s.name}</h5>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          {s.description || 'No description cataloged.'}
+                          {s.description || t('No description cataloged.')}
                         </p>
                       </div>
 
                       <div className="pt-4 border-t border-slate-850/65 mt-4 flex items-center justify-between">
                         <span className="flex items-center gap-1 text-[10px] text-slate-500">
-                          <Clock className="h-3 w-3 text-amber-500" />
-                          {s.duration} minutes
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] text-amber-400 font-bold font-mono">
-                          <Award className="h-3 w-3 text-amber-500" />
-                          +{s.pointsGiven} PTS
-                        </span>
+                           <Clock className="h-3 w-3 text-amber-500" />
+                           {s.duration} {t('minutes')}
+                         </span>
+                         <span className="flex items-center gap-1 text-[10px] text-amber-400 font-bold font-mono">
+                           <Award className="h-3 w-3 text-amber-500" />
+                           +{s.pointsGiven} {t('PTS')}
+                         </span>
                       </div>
 
                     </div>
@@ -1400,14 +1402,14 @@ export default function AdminApp({
               <div className="flex justify-between items-center bg-slate-900/35 p-4 rounded-2xl border border-slate-850">
                 <input
                   type="text"
-                  placeholder="Search clients by name, profile or email..."
+                  placeholder={t('Search clients by name, profile or email...')}
                   value={customerSearch}
                   onChange={e => setCustomerSearch(e.target.value)}
                   className="bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40 w-full max-w-md"
                 />
-                <span className="text-[10px] text-slate-500 font-mono tracking-wider font-bold">
-                  {filteredClients.length} Registered Accounts
-                </span>
+                  <span className="text-[10px] text-slate-500 font-mono tracking-wider font-bold">
+                   {filteredClients.length} {t('Registered Accounts')}
+                 </span>
               </div>
 
               {/* Grid of Client ledgers */}
@@ -1433,15 +1435,15 @@ export default function AdminApp({
                         {/* Customer Ledger Specs */}
                         <div className="mt-5 grid grid-cols-2 gap-3 p-3.5 bg-slate-950/50 rounded-2xl border border-slate-850">
                           <div>
-                            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">Redeemable PTS</span>
+                            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Redeemable PTS')}</span>
                             <span className="text-sm font-black text-amber-500 font-mono mt-1 block">
-                              {c.loyaltyPoints} <strong className="text-[10px] text-slate-500 font-sans font-normal">pts</strong>
+                              {c.loyaltyPoints} <strong className="text-[10px] text-slate-500 font-sans font-normal">{t('pts')}</strong>
                             </span>
                           </div>
                           <div>
-                            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">Completed</span>
+                            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Completed')}</span>
                             <span className="text-sm font-black text-slate-250 font-mono mt-1 block">
-                              {completedCount} <strong className="text-[10px] text-slate-500 font-sans font-normal">vst</strong>
+                              {completedCount} <strong className="text-[10px] text-slate-500 font-sans font-normal">{t('vst')}</strong>
                             </span>
                           </div>
                         </div>
@@ -1458,19 +1460,19 @@ export default function AdminApp({
                             className="flex-1 py-1.5 px-3.5 rounded-xl border border-slate-800 hover:border-amber-500/30 text-slate-400 hover:text-amber-400 text-[10px] font-bold uppercase transition-all bg-transparent cursor-pointer flex items-center justify-center gap-1"
                           >
                             <Award className="h-3 w-3" />
-                            Adjust Points
+                            {t('Adjust Points')}
                           </button>
                           
                           <button
                             onClick={() => {
                               setSelectedClientForNotif(c.id);
-                              setNotifTitle('Exclusive Offer for You');
+                              setNotifTitle(t('Exclusive Offer for You'));
                               setNotifMessage('');
                             }}
                             className="flex-1 py-1.5 px-3.5 rounded-xl border border-slate-800 hover:border-amber-500/30 text-slate-400 hover:text-amber-400 text-[10px] font-bold uppercase transition-all bg-transparent cursor-pointer flex items-center justify-center gap-1"
                           >
                             <Bell className="h-3 w-3" />
-                            Push Alert
+                            {t('Push Alert')}
                           </button>
                         </div>
                       </div>
@@ -1493,16 +1495,16 @@ export default function AdminApp({
 
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-4 flex items-center gap-2">
                       <Award className="h-4 w-4 text-amber-500" />
-                      Adjust Loyalty Points Balance
+                      {t('Adjust Loyalty Points Balance')}
                     </h4>
                     
                     <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                      Manually add or deduct points for <strong className="text-slate-200">{users.find(u => u.id === pointsAdjustmentUser)?.name}</strong>. Input positive to award, or negative to debit.
+                      {t('Manually add or deduct points for')} <strong className="text-slate-200">{users.find(u => u.id === pointsAdjustmentUser)?.name}</strong>. {t('Input positive to award, or negative to debit.')}
                     </p>
 
                     <form onSubmit={handleAdjustPoints} className="space-y-4">
                       <div>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">Points Delta Amount</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">{t('Points Delta Amount')}</label>
                         <input
                           type="number"
                           required
@@ -1516,7 +1518,7 @@ export default function AdminApp({
                         type="submit"
                         className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none"
                       >
-                        Commit Adjustment
+                        {t('Commit Adjustment')}
                       </button>
                     </form>
                   </div>
@@ -1536,16 +1538,16 @@ export default function AdminApp({
 
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-4 flex items-center gap-2">
                       <Bell className="h-4 w-4 text-amber-500" />
-                      Dispatch Custom Customer Alert
+                      {t('Dispatch Custom Customer Alert')}
                     </h4>
 
                     <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                      Send a tailored banner message straight to <strong className="text-slate-200">{users.find(u => u.id === selectedClientForNotif)?.name}</strong>'s mobile notification inbox.
+                      {t("Send a tailored banner message straight to")} <strong className="text-slate-200">{users.find(u => u.id === selectedClientForNotif)?.name}</strong>{t("'s mobile notification inbox.")}
                     </p>
 
                     <form onSubmit={handleSendNotification} className="space-y-4">
                       <div>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">Message Topic / Subject</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">{t('Message Topic / Subject')}</label>
                         <input
                           type="text"
                           required
@@ -1556,11 +1558,11 @@ export default function AdminApp({
                       </div>
 
                       <div>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">Alert Message Body</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">{t('Alert Message Body')}</label>
                         <textarea
                           rows={3}
                           required
-                          placeholder="Your exclusive 20% discount on haircuts is ready for use..."
+                          placeholder={t('Your exclusive 20% discount on haircuts is ready for use...')}
                           value={notifMessage}
                           onChange={e => setNotifMessage(e.target.value)}
                           className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40 resize-none"
@@ -1572,7 +1574,7 @@ export default function AdminApp({
                         className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                       >
                         <Send className="h-4 w-4" />
-                        Dispatch Push Alert
+                        {t('Dispatch Push Alert')}
                       </button>
                     </form>
                   </div>
@@ -1590,16 +1592,16 @@ export default function AdminApp({
               <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                   <Percent className="h-4 w-4 text-amber-500" />
-                  Deploy New Promotional Campaign Offer
+                  {t('Deploy New Promotional Campaign Offer')}
                 </h3>
 
                 <form onSubmit={handleCreatePromotion} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Promo Banner Title</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Promo Banner Title')}</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. VIP Haircut Discount"
+                      placeholder={t('e.g. VIP Haircut Discount')}
                       value={promoTitle}
                       onChange={e => setPromoTitle(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1607,11 +1609,11 @@ export default function AdminApp({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Discount Amount Label</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Discount Amount Label')}</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. 20% OFF or $15 OFF"
+                      placeholder={t('e.g. 20% OFF or $15 OFF')}
                       value={promoDiscount}
                       onChange={e => setPromoDiscount(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1619,11 +1621,11 @@ export default function AdminApp({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Max Bookings Limit</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Max Bookings Limit')}</label>
                     <input
                       type="number"
                       required
-                      placeholder="100"
+                      placeholder={t('100')}
                       value={promoLimit}
                       onChange={e => setPromoLimit(e.target.value)}
                       className="w-full bg-[#03060a] border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1631,10 +1633,10 @@ export default function AdminApp({
                   </div>
 
                   <div className="md:col-span-2 space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Offer Summary / Fine Print</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Offer Summary / Fine Print')}</label>
                     <input
                       type="text"
-                      placeholder="e.g. Save 20% on any premium treatment with the crew..."
+                      placeholder={t('e.g. Save 20% on any premium treatment with the crew...')}
                       value={promoDesc}
                       onChange={e => setPromoDesc(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1646,16 +1648,16 @@ export default function AdminApp({
                       type="submit"
                       className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                     >
-                      <Plus className="h-4 w-4" />
-                      Deploy Offer
-                    </button>
+                        <Plus className="h-4 w-4" />
+                        {t('Deploy Offer')}
+                      </button>
                   </div>
                 </form>
               </div>
 
               {/* Active list of marketing promotions */}
               <div className="space-y-6">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Active Campaign Directory</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{t('Active Campaign Directory')}</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {promotions.map(p => (
@@ -1665,7 +1667,7 @@ export default function AdminApp({
                       <button
                         onClick={() => onRemovePromotion(p.id)}
                         className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-                        title="Withdraw Promotion"
+                        title={t('Withdraw Promotion')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -1675,18 +1677,18 @@ export default function AdminApp({
                           <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-[10px] font-bold">
                             {p.discount}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-mono">Limit: {p.bookingLimit} bookings</span>
+                          <span className="text-[10px] text-slate-500 font-mono">{t('Limit:')} {p.bookingLimit} {t('bookings')}</span>
                         </div>
 
                         <h5 className="text-xs font-black uppercase tracking-wider text-slate-200">{p.title}</h5>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          {p.description || 'Exclusive VIP loyalty point campaign.'}
+                          {p.description || t('Exclusive VIP loyalty point campaign.')}
                         </p>
                       </div>
 
                       <div className="pt-4 border-t border-slate-850/65 mt-5 flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                        <span>Starts: {p.startDate}</span>
-                        <span>Redeemed: <strong className="text-slate-350">{p.bookingsCount}</strong> times</span>
+                        <span>{t('Starts:')} {p.startDate}</span>
+                        <span>{t('Redeemed:')} <strong className="text-slate-350">{p.bookingsCount}</strong> {t('times')}</span>
                       </div>
 
                     </div>
