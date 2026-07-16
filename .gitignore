@@ -9,3 +9,8 @@ coverage/
 
 # Local-only wrangler config (D1 migrations) - not used by Pages build
 wrangler.toml
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
