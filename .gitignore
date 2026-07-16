@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Local-only wrangler config (D1 migrations) - not used by Pages build
+wrangler.toml
