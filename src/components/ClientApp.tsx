@@ -253,18 +253,6 @@ export default function ClientApp({
 
   return (
     <div className="flex flex-col bg-[#0b0f19] h-full text-slate-100 relative rounded-[32px] overflow-hidden shadow-2xl border border-slate-800 font-sans max-w-md w-full mx-auto" style={{ minHeight: '680px' }}>
-      
-      {/* PHONE STATUS REPLICATOR BAR - To make it look like a real Android application */}
-      <div className="bg-[#0b0f19] text-slate-400 text-[11px] px-6 pt-3 pb-1 flex justify-between items-center select-none font-mono border-b border-white/5 shrink-0">
-        <span className="font-bold text-slate-200">09:41</span>
-         <div className="flex items-center gap-1.5 text-slate-400">
-           <span>{t('5G')}</span>
-           <div className="h-2 w-3.5 bg-slate-400 rounded-sm relative">
-             <span className="absolute right-[-2px] top-[2px] h-1 w-0.5 bg-slate-400 rounded-sm"></span>
-           </div>
-           <span className="text-[10px]">{t('98%')}</span>
-         </div>
-      </div>
 
       {/* HEADER SECTION */}
       <header className="p-5 flex justify-between items-center bg-[#0d1321] border-b border-slate-800/80 shrink-0">
