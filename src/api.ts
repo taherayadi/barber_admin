@@ -116,6 +116,9 @@ export async function createPromotion(p: Promotion): Promise<Promotion> {
 export async function deletePromotion(id: string): Promise<void> {
   await api(`/promotions/${id}`, { method: 'DELETE' });
 }
+export async function updatePromotion(p: Promotion): Promise<Promotion> {
+  return api<Promotion>(`/promotions/${p.id}`, { method: 'PUT', body: JSON.stringify(p) });
+}
 
 // --- Settings ---
 export async function fetchPointValue(): Promise<number> {

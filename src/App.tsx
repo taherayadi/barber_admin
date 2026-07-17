@@ -375,6 +375,12 @@ function AppInner() {
     if (target) triggerToast(t('Promo Removed'), t('Campaign "{targetTitle}" was removed.', { targetTitle: target.title }), 'system');
   };
 
+  const handleUpdatePromotion = async (updated: Promotion) => {
+    await api.updatePromotion(updated);
+    setPromotions(prev => prev.map(p => p.id === updated.id ? updated : p));
+    triggerToast(t('Promo Updated'), t('Campaign "{updatedTitle}" was saved.', { updatedTitle: updated.title }), 'system');
+  };
+
   if (loading) {
     return (
       <div className="bg-[#07090f] text-slate-100 min-h-screen flex items-center justify-center font-sans">
@@ -423,6 +429,7 @@ function AppInner() {
           promotions={promotions}
           onAddPromotion={handleAddPromotion}
           onRemovePromotion={handleRemovePromotion}
+          onUpdatePromotion={handleUpdatePromotion}
         />
       ) : (
         <ClientApp

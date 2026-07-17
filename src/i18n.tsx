@@ -272,6 +272,18 @@ const FR: Record<string, string> = {
   'Exclusive VIP loyalty point campaign.': 'Campagne exclusive de points de fidélité VIP.',
   'Starts: {date}': 'Début : {date}',
   'Redeemed: {n} times': 'Utilisée : {n} fois',
+  'Edit Promotional Campaign Offer': 'Modifier la campagne promotionnelle',
+  'Save Changes': 'Enregistrer les modifications',
+  'Cancel Edit': 'Annuler la modification',
+  'Edit Promotion': 'Modifier la promotion',
+  'Displayed': 'Affichée',
+  'Hidden': 'Masquée',
+  'Hide': 'Masquer',
+  'Display': 'Afficher',
+  'Limit:': 'Limite :',
+  'bookings': 'réservations',
+  'Redeemed:': 'Utilisée :',
+  'times': 'fois',
 
   // Toasts (from App.tsx)
   'Secure Entrance Verified': 'Entrée sécurisée vérifiée',

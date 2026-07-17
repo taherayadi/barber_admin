@@ -91,5 +91,6 @@ export interface Promotion {
   endDate: string;
   bookingLimit: number;
   bookingsCount: number;
+  active: boolean;
 }
 

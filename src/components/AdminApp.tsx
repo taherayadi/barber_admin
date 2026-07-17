@@ -19,7 +19,10 @@ import {
   PlusCircle,
   TrendingUp,
   Sliders,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff,
+  Pencil
 } from 'lucide-react';
 import { User, Appointment, Barber, Review, ServiceItem, ServiceCategory, Promotion } from '../types';
 import { useT } from '../i18n';
@@ -51,6 +54,7 @@ interface AdminAppProps {
   promotions: Promotion[];
   onAddPromotion: (newPromo: Promotion) => void;
   onRemovePromotion: (id: string) => void;
+  onUpdatePromotion: (updated: Promotion) => void;
 }
 
 export default function AdminApp({
@@ -77,7 +81,9 @@ export default function AdminApp({
   onUpdatePointValue,
   promotions,
   onAddPromotion,
-  onRemovePromotion
+  onRemovePromotion,
+  onUpdatePromotion
+
 }: AdminAppProps) {
   const t = useT();
   // Navigation
@@ -133,6 +139,7 @@ export default function AdminApp({
   const [promoDesc, setPromoDesc] = useState('');
   const [promoDiscount, setPromoDiscount] = useState('20%');
   const [promoLimit, setPromoLimit] = useState('100');
+  const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
 
   // Category Form State
   const [newCatName, setNewCatName] = useState('');
@@ -280,9 +287,44 @@ export default function AdminApp({
     setNewBarberAvatar('');
   };
 
+  const resetPromoForm = () => {
+    setEditingPromoId(null);
+    setPromoTitle('');
+    setPromoDesc('');
+    setPromoDiscount('20%');
+    setPromoLimit('100');
+  };
+
+  const loadPromoForEdit = (p: Promotion) => {
+    setEditingPromoId(p.id);
+    setPromoTitle(p.title);
+    setPromoDesc(p.description || '');
+    setPromoDiscount(p.discount);
+    setPromoLimit(String(p.bookingLimit));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleCreatePromotion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoTitle || !promoDiscount) return;
+
+    if (editingPromoId) {
+      const existing = promotions.find(p => p.id === editingPromoId);
+      onUpdatePromotion({
+        id: editingPromoId,
+        title: promoTitle,
+        description: promoDesc,
+        discount: promoDiscount,
+        image: existing?.image || 'https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&q=80&w=300',
+        startDate: existing?.startDate || new Date().toISOString().split('T')[0],
+        endDate: existing?.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        bookingLimit: parseInt(promoLimit) || 100,
+        bookingsCount: existing?.bookingsCount || 0,
+        active: existing?.active !== false
+      });
+      resetPromoForm();
+      return;
+    }
 
     onAddPromotion({
       id: 'p_' + Math.floor(Math.random() * 100000),
@@ -293,7 +335,8 @@ export default function AdminApp({
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       bookingLimit: parseInt(promoLimit) || 100,
-      bookingsCount: 0
+      bookingsCount: 0,
+      active: true
     });
 
     setPromoTitle('');
@@ -1602,7 +1645,7 @@ export default function AdminApp({
               <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                   <Percent className="h-4 w-4 text-amber-500" />
-                  {t('Deploy New Promotional Campaign Offer')}
+                  {editingPromoId ? t('Edit Promotional Campaign Offer') : t('Deploy New Promotional Campaign Offer')}
                 </h3>
 
                 <form onSubmit={handleCreatePromotion} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1658,9 +1701,17 @@ export default function AdminApp({
                       type="submit"
                       className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                     >
-                        <Plus className="h-4 w-4" />
-                        {t('Deploy Offer')}
+                        {editingPromoId ? <><Check className="h-4 w-4" />{t('Save Changes')}</> : <><Plus className="h-4 w-4" />{t('Deploy Offer')}</>}
                       </button>
+                    {editingPromoId && (
+                      <button
+                        type="button"
+                        onClick={resetPromoForm}
+                        className="w-full py-2.5 mt-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none"
+                      >
+                        {t('Cancel Edit')}
+                      </button>
+                    )}
                   </div>
                 </form>
               </div>
@@ -1670,24 +1721,37 @@ export default function AdminApp({
                 <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{t('Active Campaign Directory')}</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {promotions.map(p => (
-                    <div key={p.id} className="p-6 rounded-3xl bg-[#090d16] border border-slate-850 flex flex-col justify-between group relative">
-                      
-                      {/* Trash action */}
-                      <button
-                        onClick={() => onRemovePromotion(p.id)}
-                        className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-                        title={t('Withdraw Promotion')}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                  {promotions.map(p => {
+                    const isActive = p.active !== false;
+                    return (
+                    <div key={p.id} className={`p-6 rounded-3xl bg-[#090d16] border flex flex-col justify-between group relative ${isActive ? 'border-slate-850' : 'border-slate-850/50 opacity-70'}`}>
+
+                      {/* Action buttons */}
+                      <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                        <button
+                          onClick={() => loadPromoForEdit(p)}
+                          className="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:scale-105 transition-all cursor-pointer"
+                          title={t('Edit Promotion')}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onRemovePromotion(p.id)}
+                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer"
+                          title={t('Withdraw Promotion')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
 
                       <div>
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="flex justify-between items-start mb-4 pr-20">
                           <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-[10px] font-bold">
                             {p.discount}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-mono">{t('Limit:')} {p.bookingLimit} {t('bookings')}</span>
+                          <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider font-mono border ${isActive ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-700/40 border-slate-600 text-slate-400'}`}>
+                            {isActive ? t('Displayed') : t('Hidden')}
+                          </span>
                         </div>
 
                         <h5 className="text-xs font-black uppercase tracking-wider text-slate-200">{p.title}</h5>
@@ -1697,12 +1761,19 @@ export default function AdminApp({
                       </div>
 
                       <div className="pt-4 border-t border-slate-850/65 mt-5 flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                        <span>{t('Starts:')} {p.startDate}</span>
                         <span>{t('Redeemed:')} <strong className="text-slate-350">{p.bookingsCount}</strong> {t('times')}</span>
+                        <button
+                          onClick={() => onUpdatePromotion({ ...p, active: !isActive })}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold border transition-all cursor-pointer ${isActive ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400'}`}
+                        >
+                          {isActive ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          {isActive ? t('Hide') : t('Display')}
+                        </button>
                       </div>
 
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

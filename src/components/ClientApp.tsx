@@ -102,6 +102,11 @@ export default function ClientApp({
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
   const [redeemPointsAsDiscount, setRedeemPointsAsDiscount] = useState<boolean>(false);
 
+  const visiblePromotions = useMemo(
+    () => promotions.filter(p => p.active !== false),
+    [promotions]
+  );
+
   // Cross-validation of chosen barber vs selected operation qualification
   useEffect(() => {
     if (selectedBarber && selectedService) {
@@ -312,15 +317,15 @@ export default function ClientApp({
               className="space-y-4"
             >
               {/* BRAND PROMOTIONS BANNER CAROUSEL */}
-              {promotions.length > 0 && (
+              {visiblePromotions.length > 0 && (
                 <div className="space-y-2.5">
                   <div className="flex justify-between items-center px-1">
                       <h3 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest flex items-center gap-1 font-mono">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-ping"></span>
-                        {t('Exclusive Store Special Offers')} [{promotions.length}]
+                        {t('Exclusive Store Special Offers')} [{visiblePromotions.length}]
                       </h3>
                     <div className="flex gap-1">
-                      {promotions.map((_, idx) => (
+                      {visiblePromotions.map((_, idx) => (
                         <button
                           key={idx}
                           type="button"
@@ -334,8 +339,8 @@ export default function ClientApp({
                   </div>
 
                   <AnimatePresence mode="wait">
-                    {promotions[promoCarouselIndex] && (() => {
-                      const promo = promotions[promoCarouselIndex];
+                    {visiblePromotions[promoCarouselIndex] && (() => {
+                      const promo = visiblePromotions[promoCarouselIndex];
                       const slotsLeft = Math.max(0, promo.bookingLimit - promo.bookingsCount);
                       const percentClaimed = Math.min(100, (promo.bookingsCount / promo.bookingLimit) * 100);
                       
@@ -1312,7 +1317,7 @@ export default function ClientApp({
                      <span className="text-[9px] text-amber-500 font-extrabold uppercase tracking-widest font-mono block">
                        {t('Limited Time VIP Campaign')}
                      </span>
-                    <h3 className="text-sm font-extrabold text-slate-100 leading-snug">{detailedPromo.title}</h3>
+                    <h3 className="text-sm font-extrabold text-white leading-snug">{detailedPromo.title}</h3>
                   </div>
 
                   <p className="text-xs text-slate-400 leading-relaxed">
