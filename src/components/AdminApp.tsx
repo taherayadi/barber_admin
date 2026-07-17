@@ -1099,7 +1099,9 @@ export default function AdminApp({
                               <p className="text-[10px] font-mono text-slate-500 mt-0.5">{a.time}</p>
                             </td>
                              <td className="p-4 font-mono font-bold text-slate-300">
-                               {formatPrice(a.price)}
+                               {a.pointsRedeemed > 0
+                                 ? <span className="text-amber-400">{a.pointsRedeemed} {t('PTS')} <span className="text-[9px] font-sans text-slate-500 font-normal">({formatPrice(a.price)})</span></span>
+                                 : formatPrice(a.price)}
                              </td>
                             <td className="p-4">
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
