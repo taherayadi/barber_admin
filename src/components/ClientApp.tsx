@@ -151,8 +151,12 @@ export default function ClientApp({
   }, [selectedService?.id, selectedBarber?.id]);
 
   // Time slots helper
+   const nowDate = new Date();
+   const pad2 = (n: number) => String(n).padStart(2, '0');
+   const todayValue = `${nowDate.getFullYear()}-${pad2(nowDate.getMonth() + 1)}-${pad2(nowDate.getDate())}`;
+   const nowHHMM = `${pad2(nowDate.getHours())}:${pad2(nowDate.getMinutes())}`;
    const availableDates = [
-     { label: t('Today'), value: new Date().toISOString().split('T')[0] },
+     { label: t('Today'), value: todayValue },
      { label: t('Tomorrow'), value: new Date(Date.now() + 86400000).toISOString().split('T')[0] },
      { label: t('Day After'), value: new Date(Date.now() + 172800000).toISOString().split('T')[0] }
    ];
@@ -833,14 +837,16 @@ export default function ClientApp({
                                    a.time === timeSlot && 
                                    a.status !== 'cancelled'
                             );
+                            const isPast = selectedDate === todayValue && timeSlot <= nowHHMM;
+                            const disabled = isReserved || isPast;
                             return (
                               <button
                                 key={timeSlot}
                                 type="button"
-                                disabled={isReserved}
+                                disabled={disabled}
                                 onClick={() => setSelectedTime(timeSlot)}
                                 className={`py-2 text-[11px] font-semibold rounded-lg border font-mono transition-all relative ${
-                                  isReserved
+                                  disabled
                                     ? 'bg-slate-950/20 border-slate-900/60 opacity-35 line-through text-slate-500 cursor-not-allowed select-none'
                                     : selectedTime === timeSlot
                                       ? 'bg-amber-500/10 border-amber-500 text-amber-400 font-bold'
@@ -848,9 +854,12 @@ export default function ClientApp({
                                 }`}
                               >
                                 {timeSlot}
+                                 {isPast && (
+                                    <span className="sr-only"> {t('(Passed)')}</span>
+                                  )}
                                  {isReserved && (
-                                   <span className="sr-only"> {t('(Reserved)')}</span>
-                                 )}
+                                    <span className="sr-only"> {t('(Reserved)')}</span>
+                                  )}
                               </button>
                             );
                           })}
