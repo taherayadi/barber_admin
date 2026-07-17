@@ -359,6 +359,7 @@ const FR: Record<string, string> = {
   'ID: {APPID}': 'ID : {APPID}',
   'Stylist: {name}': 'Coiffeur : {name}',
   'Payment Method': 'Mode de paiement',
+  'Cash': 'Espèces',
   'Loyalty Points Redeemed': 'Points de fidélité échangés',
   'Rate Barber': 'Évaluer le barbier',
   'Reviewed': 'Évalué',

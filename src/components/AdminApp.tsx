@@ -339,7 +339,7 @@ export default function AdminApp({
     <div className="flex flex-col md:flex-row h-screen bg-[#07090f] text-slate-150 font-sans antialiased overflow-hidden">
       
       {/* 1. SIDEBAR DECK */}
-      <aside className="w-full md:w-64 bg-[#0a0d16] border-r border-slate-850 flex flex-col shrink-0">
+      <aside className="w-full md:w-72 bg-[#0a0d16] border-r border-slate-850 flex flex-col shrink-0">
         
         {/* Salon Branding Header */}
         <div className="p-6 border-b border-slate-850 flex items-center gap-3">
@@ -360,7 +360,7 @@ export default function AdminApp({
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'dashboard'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
@@ -372,7 +372,7 @@ export default function AdminApp({
 
           <button
             onClick={() => setActiveTab('appointments')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'appointments'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
@@ -383,7 +383,7 @@ export default function AdminApp({
               {t('Bookings Queue')}
             </span>
             {metrics.pending > 0 && (
-              <span className="h-5 px-1.5 min-w-[20px] rounded-full bg-red-500 text-white font-mono text-[10px] flex items-center justify-center font-bold">
+              <span className="h-5 px-1.5 min-w-[20px] rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-mono text-[10px] flex items-center justify-center font-bold">
                 {metrics.pending}
               </span>
             )}
@@ -391,7 +391,7 @@ export default function AdminApp({
 
           <button
             onClick={() => setActiveTab('barbers')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'barbers'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
@@ -403,7 +403,7 @@ export default function AdminApp({
 
           <button
             onClick={() => setActiveTab('services')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'services'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
@@ -415,7 +415,7 @@ export default function AdminApp({
 
           <button
             onClick={() => setActiveTab('customers')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'customers'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
@@ -427,7 +427,7 @@ export default function AdminApp({
 
           <button
             onClick={() => setActiveTab('promotions')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'promotions'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
@@ -850,7 +850,7 @@ export default function AdminApp({
                             </button>
                             <button
                               onClick={() => onCancelAppointment(a.id)}
-                              className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
+                              className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-600 dark:text-red-400 cursor-pointer"
                               title={t('Decline Booking')}
                             >
                               <X className="h-4 w-4" />
@@ -882,7 +882,7 @@ export default function AdminApp({
                     <button
                       key={f}
                       onClick={() => setAppFilter(f)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border-none cursor-pointer ${
+                      className={`px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border-none cursor-pointer whitespace-nowrap ${
                         appFilter === f
                           ? 'bg-amber-500 text-slate-950 shadow-sm'
                           : 'bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -951,13 +951,13 @@ export default function AdminApp({
                                   <>
                                     <button
                                       onClick={() => onConfirmAppointment(a.id)}
-                                       className="py-1 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
+                                       className="py-1 px-3.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
                                      >
                                        {t('Approve')}
                                      </button>
                                      <button
                                        onClick={() => onCancelAppointment(a.id)}
-                                       className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
+                                       className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-600 dark:text-red-400 cursor-pointer"
                                        title={t('Cancel Reservation')}
                                     >
                                       <X className="h-4.5 w-4.5" />
@@ -969,13 +969,13 @@ export default function AdminApp({
                                   <>
                                     <button
                                       onClick={() => onCompleteAppointment(a.id)}
-                                       className="py-1 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
+                                       className="py-1 px-3.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
                                      >
                                        {t('Mark Complete')}
                                      </button>
                                      <button
                                        onClick={() => onCancelAppointment(a.id)}
-                                       className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
+                                       className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-600 dark:text-red-400 cursor-pointer"
                                        title={t('Decline Reservation')}
                                     >
                                       <X className="h-4.5 w-4.5" />
@@ -1709,3 +1709,5 @@ export default function AdminApp({
     </div>
   );
 }
+
+

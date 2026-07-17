@@ -354,7 +354,6 @@ function AppInner() {
 
   return (
     <div className="bg-[#07090f] text-slate-100 min-h-screen relative font-sans">
-      {!currentUser && <SettingsToggle />}
       <NotificationBanner toast={activeToast} onClose={() => setActiveToast(null)} />
 
       {!currentUser ? (

@@ -993,7 +993,7 @@ export default function ClientApp({
                           <div>
                              <span className="text-[10px] text-slate-500 block">{t('Payment Method')}</span>
                              <span className="text-xs font-black text-slate-100">
-                               {app.price === 0 ? t('Loyalty Points Redeemed') : `${formatPrice(app.price)} ${t('Visa Inc.')}`}
+                                {app.price === 0 ? t('Loyalty Points Redeemed') : `${formatPrice(app.price)} ${t('Cash')}`}
                              </span>
                           </div>
                           
