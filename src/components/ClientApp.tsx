@@ -171,8 +171,9 @@ export default function ClientApp({
     return pointValue > 0 ? Math.ceil(s.price / pointValue) : s.pointsCost;
   };
 
-  // Points tier calculations
-  const nextTierPoints = 150;
+  // Points tier calculations — target = cheapest service redeem cost in the list
+  const redeemCosts = services.map(s => s.pointsCost || getServicePointsCost(s)).filter(n => n > 0);
+  const nextTierPoints = redeemCosts.length ? Math.min(...redeemCosts) : 150;
   const progressPercent = Math.min((userLoyaltyPoints / nextTierPoints) * 100, 100);
 
   const getDiscountedPrice = (servicePrice: number): number => {
