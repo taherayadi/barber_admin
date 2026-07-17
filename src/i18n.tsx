@@ -261,6 +261,8 @@ const FR: Record<string, string> = {
   'Promo Banner Title': 'Titre de la bannière promo',
   'Discount Amount Label': 'Libellé de la remise',
   'Max Bookings Limit': 'Limite maximale de réservations',
+  'Start Date': 'Date de début',
+  'End Date': 'Date de fin',
   'Offer Summary / Fine Print': 'Résumé de l\'offre',
   'e.g. VIP Haircut Discount': 'Ex. Remise coupe VIP',
   'e.g. 20% OFF or 15 TND OFF': 'Ex. -20% ou -15 TND',

@@ -139,6 +139,8 @@ export default function AdminApp({
   const [promoDesc, setPromoDesc] = useState('');
   const [promoDiscount, setPromoDiscount] = useState('20%');
   const [promoLimit, setPromoLimit] = useState('100');
+  const [promoStart, setPromoStart] = useState('');
+  const [promoEnd, setPromoEnd] = useState('');
   const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
 
   // Category Form State
@@ -317,6 +319,8 @@ export default function AdminApp({
     setPromoDesc('');
     setPromoDiscount('20%');
     setPromoLimit('100');
+    setPromoStart('');
+    setPromoEnd('');
   };
 
   const loadPromoForEdit = (p: Promotion) => {
@@ -325,23 +329,35 @@ export default function AdminApp({
     setPromoDesc(p.description || '');
     setPromoDiscount(p.discount);
     setPromoLimit(String(p.bookingLimit));
+    setPromoStart(p.startDate || '');
+    setPromoEnd(p.endDate || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const computePromoDates = (fallbackStart: string, fallbackEnd: string) => {
+    const start = promoStart || fallbackStart;
+    const end = promoEnd || fallbackEnd;
+    return { start, end };
   };
 
   const handleCreatePromotion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoTitle || !promoDiscount) return;
 
+    const fbStart = new Date().toISOString().split('T')[0];
+    const fbEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
     if (editingPromoId) {
       const existing = promotions.find(p => p.id === editingPromoId);
+      const { start, end } = computePromoDates(existing?.startDate || fbStart, existing?.endDate || fbEnd);
       onUpdatePromotion({
         id: editingPromoId,
         title: promoTitle,
         description: promoDesc,
         discount: promoDiscount,
         image: existing?.image || 'https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&q=80&w=300',
-        startDate: existing?.startDate || new Date().toISOString().split('T')[0],
-        endDate: existing?.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        startDate: start,
+        endDate: end,
         bookingLimit: parseInt(promoLimit) || 100,
         bookingsCount: existing?.bookingsCount || 0,
         active: existing?.active !== false
@@ -350,14 +366,15 @@ export default function AdminApp({
       return;
     }
 
+    const { start, end } = computePromoDates(fbStart, fbEnd);
     onAddPromotion({
       id: 'p_' + Math.floor(Math.random() * 100000),
       title: promoTitle,
       description: promoDesc,
       discount: promoDiscount,
       image: 'https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&q=80&w=300',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startDate: start,
+      endDate: end,
       bookingLimit: parseInt(promoLimit) || 100,
       bookingsCount: 0,
       active: true
@@ -1708,6 +1725,27 @@ export default function AdminApp({
                       className="w-full bg-[#03060a] border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
                     />
                   </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Start Date')}</label>
+                    <input
+                      type="date"
+                      value={promoStart}
+                      onChange={e => setPromoStart(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500/40 [color-scheme:dark]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('End Date')}</label>
+                    <input
+                      type="date"
+                      value={promoEnd}
+                      onChange={e => setPromoEnd(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500/40 [color-scheme:dark]"
+                    />
+                  </div>
+
 
                   <div className="md:col-span-2 space-y-1">
                     <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Offer Summary / Fine Print')}</label>

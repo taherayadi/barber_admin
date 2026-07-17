@@ -46,7 +46,8 @@ function AppInner() {
   const [loading, setLoading] = useState(true);
 
   const [activeToast, setActiveToast] = useState<NotificationToast | null>(null);
-  const promoUpdatePending = useRef(false);
+  // Tracks promo ids that were recently mutated locally so the 5s poll doesn't clobber them
+  const promoDirtyUntil = useRef<Record<string, number>>({});
 
   useEffect(() => {
     const init = async () => {
@@ -112,7 +113,17 @@ function AppInner() {
         setBarbers(b);
         setServices(s);
         setCategories(c);
-        if (!promoUpdatePending.current) setPromotions(p);
+        const now = Date.now();
+        const dirty = promoDirtyUntil.current;
+        setPromotions(prev => {
+          // keep locally-mutated promos until their dirty window expires
+          const merged = p.map((np: Promotion) =>
+            dirty[np.id] && now < dirty[np.id] ? (prev.find(x => x.id === np.id) ?? np) : np
+          );
+          // include any promos present locally but missing from the fetch (e.g. just created)
+          prev.forEach(x => { if (!p.find(np => np.id === x.id)) merged.push(x); });
+          return merged;
+        });
         // Keep the logged-in user's live data (e.g. loyalty points) in sync
         const fresh = u.find((usr: User) => usr.id === currentUser.id);
         if (fresh) setCurrentUser((prev: User | null) => prev ? { ...prev, ...fresh, password: undefined } : prev);
@@ -379,16 +390,13 @@ function AppInner() {
   const handleUpdatePromotion = async (updated: Promotion) => {
     // Optimistic update first so the UI reflects the change immediately
     setPromotions(prev => prev.map(p => p.id === updated.id ? updated : p));
-    promoUpdatePending.current = true;
+    promoDirtyUntil.current[updated.id] = Date.now() + 6000;
     try {
       const saved = await api.updatePromotion(updated);
       setPromotions(prev => prev.map(p => p.id === updated.id ? saved : p));
     } catch {
       // revert on failure
       setPromotions(prev => prev.map(p => p.id === updated.id ? { ...p } : p));
-    } finally {
-      // allow the next poll (after the in-flight one) to refresh
-      setTimeout(() => { promoUpdatePending.current = false; }, 6000);
     }
     triggerToast(t('Promo Updated'), t('Campaign "{updatedTitle}" was saved.', { updatedTitle: updated.title }), 'system');
   };
@@ -398,11 +406,10 @@ function AppInner() {
     if (!target) return;
     const incremented: Promotion = { ...target, bookingsCount: (target.bookingsCount || 0) + 1 };
     setPromotions(prev => prev.map(p => p.id === promoId ? incremented : p));
-    promoUpdatePending.current = true;
+    promoDirtyUntil.current[promoId] = Date.now() + 6000;
     try {
       await api.updatePromotion(incremented);
     } catch { /* ignore */ }
-    setTimeout(() => { promoUpdatePending.current = false; }, 6000);
   };
 
   if (loading) {
