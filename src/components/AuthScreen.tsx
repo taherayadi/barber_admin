@@ -61,16 +61,6 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
     }
   };
 
-  const handleQuickLogin = (roleType: 'client' | 'admin') => {
-    const targetEmail = roleType === 'client'
-      ? 'taherayadi1990@gmail.com'
-      : 'admin@barbershop.com';
-    const found = allUsers.find(u => u.email === targetEmail);
-    if (found) {
-      onLogin(found);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <SettingsToggle className="absolute top-3 right-3 z-20" />
@@ -215,33 +205,6 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
               className="text-xs text-amber-500 hover:text-amber-400 hover:underline font-sans tracking-wide bg-transparent border-none cursor-pointer"
             >
               {isLogin ? t("Need a portal account? Create a profile") : t("Already registered? Click here to Log In")}
-            </button>
-          </div>
-
-          <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-slate-800"></div>
-            <span className="flex-shrink mx-4 text-slate-500 text-[10px] font-sans font-bold tracking-wider uppercase">
-              {t('Instant Quick-Login')}
-            </span>
-            <div className="flex-grow border-t border-slate-800"></div>
-          </div>
-
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin')}
-              className="p-4 rounded-2xl bg-[#0d121c] border border-slate-800 hover:border-amber-500/30 flex flex-col items-center justify-center text-center group cursor-pointer transition-all w-full max-w-xs"
-              id="admin-quick-login-btn"
-            >
-              <div className="h-10 w-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-                <UserIcon className="h-5 w-5" />
-              </div>
-              <span className="text-sm font-semibold text-slate-250 font-sans">
-                {t('Barberhouse Admin')}
-              </span>
-              <span className="text-[10.5px] text-amber-500 font-mono mt-0.5 font-bold">
-                {t('Executive Portal')}
-              </span>
             </button>
           </div>
         </div>

@@ -1054,7 +1054,7 @@ export default function ClientApp({
                   {notifications
                     .filter(n => n.clientId === user.id)
                     .slice()
-                    .reverse()
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .map((notif) => (
                       <div
                         key={notif.id}

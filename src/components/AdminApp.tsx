@@ -329,11 +329,25 @@ export default function AdminApp({
     return a.status === appFilter;
   });
 
+  // Always keep actionable items on top: pending -> confirmed -> cancelled -> completed
+  const statusRank: Record<string, number> = { pending: 0, confirmed: 1, cancelled: 2, completed: 3 };
+  filteredAppointments.sort((a, b) => {
+    const ra = statusRank[a.status] ?? 9;
+    const rb = statusRank[b.status] ?? 9;
+    if (ra !== rb) return ra - rb;
+    return a.date.localeCompare(b.date) || a.time.localeCompare(b.time);
+  });
+
   const filteredClients = users.filter(u => {
     if (u.role !== 'client') return false;
     return u.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
            u.email.toLowerCase().includes(customerSearch.toLowerCase());
   });
+
+  const categoryName = (id: string): string => {
+    const cat = categories.find(c => c.id === id);
+    return cat ? cat.name : id;
+  };
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#07090f] text-slate-150 font-sans antialiased overflow-hidden">
@@ -752,7 +766,7 @@ export default function AdminApp({
                               </td>
                               <td className="p-3">
                                 <span className="px-2 py-0.5 rounded-lg bg-slate-950 text-slate-400 border border-slate-850 text-[10px] font-mono">
-                                  {item.service.category}
+                                  {categoryName(item.service.category)}
                                 </span>
                               </td>
                               <td className="p-3 font-mono text-slate-400">
@@ -1216,7 +1230,7 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Retail Price ($ USD)')}</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Retail Price (TND)')}</label>
                       <input
                         type="number"
                         step="0.50"
@@ -1367,7 +1381,7 @@ export default function AdminApp({
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[9px] font-mono uppercase bg-slate-950 text-slate-450 px-2.5 py-1 rounded-xl border border-slate-850 font-bold">
-                            {s.category}
+                            {categoryName(s.category)}
                           </span>
                           <span className="text-xs font-mono font-bold text-amber-500 pr-6">{formatPrice(s.price)}</span>
                         </div>

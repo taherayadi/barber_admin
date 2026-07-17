@@ -94,16 +94,24 @@ function AppInner() {
     if (!currentUser) return;
     const poll = async () => {
       try {
-        const [a, n, u, r] = await Promise.all([
+        const [a, n, u, r, b, s, c, p] = await Promise.all([
           api.fetchAppointments(),
           api.fetchNotifications(),
           api.fetchUsers(),
           api.fetchReviews(),
+          api.fetchBarbers(),
+          api.fetchServices(),
+          api.fetchCategories(),
+          api.fetchPromotions(),
         ]);
         setAppointments(a);
         setNotifications(n);
         setAllUsers(u);
         setReviews(r);
+        setBarbers(b);
+        setServices(s);
+        setCategories(c);
+        setPromotions(p);
       } catch {
         /* ignore transient polling errors */
       }
@@ -348,7 +356,7 @@ function AppInner() {
   const handleUpdatePointValue = async (val: number) => {
     await api.updatePointValue(val);
     setPointValue(val);
-    triggerToast(t('Rate Updated'), t('Exchange rate set to ${val} per point.', { val: val.toFixed(2) }), 'system');
+    triggerToast(t('Rate Updated'), t('Exchange rate set to {val} TND per point.', { val: val.toFixed(2) }), 'system');
   };
 
   const handleAddPromotion = async (newPromo: Promotion) => {
