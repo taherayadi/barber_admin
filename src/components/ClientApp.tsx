@@ -107,6 +107,38 @@ export default function ClientApp({
     [promotions]
   );
 
+  // Auto-advance promo carousel every 3 seconds (horizontal pager)
+  useEffect(() => {
+    if (visiblePromotions.length <= 1) return;
+    const timer = setInterval(() => {
+      setPromoCarouselIndex(idx => (idx + 1) % visiblePromotions.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [visiblePromotions.length]);
+
+  const barberStats = useMemo(() => {
+    const map: Record<string, { rating: number; count: number }> = {};
+    for (const r of reviews) {
+      if (!r.barberId) continue;
+      if (!map[r.barberId]) map[r.barberId] = { rating: 0, count: 0 };
+      map[r.barberId].rating += r.rating;
+      map[r.barberId].count += 1;
+    }
+    for (const id in map) {
+      map[id].rating = map[id].count > 0 ? map[id].rating / map[id].count : 0;
+    }
+    return map;
+  }, [reviews]);
+
+  const getBarberRating = (b: Barber): number => {
+    const s = barberStats[b.id];
+    return s && s.count > 0 ? s.rating : (b.rating || 0);
+  };
+  const getBarberReviewCount = (b: Barber): number => {
+    const s = barberStats[b.id];
+    return s ? s.count : (b.reviewsCount || 0);
+  };
+
   // Cross-validation of chosen barber vs selected operation qualification
   useEffect(() => {
     if (selectedBarber && selectedService) {
@@ -379,9 +411,9 @@ export default function ClientApp({
                             </div>
 
                             <div className="space-y-1">
-                              <h4 className="text-xs font-black text-white group-hover:text-amber-400 transition-colors line-clamp-1 pr-6 font-sans">
-                                {promo.title}
-                              </h4>
+                              <h4 className="text-xs font-black !text-white group-hover:!text-amber-400 transition-colors line-clamp-1 pr-6 font-sans">
+                                 {promo.title}
+                               </h4>
                                <p className="text-[10px] text-white/90 font-medium line-clamp-2 leading-relaxed drop-shadow-sm">
                                  {promo.description}
                                </p>
@@ -498,10 +530,10 @@ export default function ClientApp({
                         <div className="flex items-center gap-1.5 mt-1.5">
                           <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
                           <span className="text-xs font-bold text-slate-200">
-                            {barber.rating.toFixed(1)}
+                            {getBarberRating(barber).toFixed(1)}
                           </span>
                            <span className="text-[10px] text-slate-500">
-                             ({barber.reviewsCount} {t('reviews')})
+                             ({getBarberReviewCount(barber)} {t('reviews')})
                            </span>
                         </div>
                       </div>
@@ -620,18 +652,54 @@ export default function ClientApp({
 
               <form onSubmit={handleBookAppointment} className="space-y-4">
                 
-                {/* 1. SELECT SERVICE */}
-                <div className="p-4 bg-slate-900/40 border border-slate-850 rounded-2xl space-y-3">
+                {/* 1. SELECT SERVICE (grouped by category) */}
+                <div className="p-4 bg-slate-900/40 border border-slate-850 rounded-2xl space-y-4">
                    <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
                      {t('1. Select Operation')}
                    </label>
-                  <div className="space-y-2">
-                    {services.map((s) => (
+                  <div className="space-y-4">
+                    {categories.map((cat) => {
+                      const catServices = services.filter(s => s.category === cat.id);
+                      if (catServices.length === 0) return null;
+                      return (
+                        <div key={cat.id} className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${cat.bgClass || 'bg-amber-500'}`} />
+                            <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{cat.name}</h5>
+                          </div>
+                          {catServices.map((s) => (
+                            <div
+                              key={s.id}
+                              onClick={() => {
+                                setSelectedService(s);
+                                // Reset points check if they change service
+                                setRedeemWithPoints(false);
+                              }}
+                              className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${
+                                selectedService?.id === s.id
+                                  ? 'bg-amber-500/10 border-amber-500/60'
+                                  : 'bg-slate-950/40 border-slate-850 hover:border-slate-800'
+                              }`}
+                            >
+                              <div className="flex-1 pr-3">
+                                <h4 className="text-xs font-bold text-slate-200">{s.name}</h4>
+                                 <span className="text-[10px] text-slate-500">{s.duration} {t('min duration')}</span>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="text-xs font-black text-amber-500 block">{formatPrice(s.price)}</span>
+                                  <span className="text-[9px] text-slate-500 font-mono">{t('Redeem with')} {getServicePointsCost(s)} {t('PTS')}</span>
+                                <span className="text-[8px] text-slate-500/80 font-mono block">Valued: {formatPrice(getServicePointsCost(s) * pointValue)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {services.filter(s => !categories.some(c => c.id === s.category)).map((s) => (
                       <div
                         key={s.id}
                         onClick={() => {
                           setSelectedService(s);
-                          // Reset points check if they change service
                           setRedeemWithPoints(false);
                         }}
                         className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${
@@ -646,8 +714,6 @@ export default function ClientApp({
                         </div>
                         <div className="text-right shrink-0">
                           <span className="text-xs font-black text-amber-500 block">{formatPrice(s.price)}</span>
-                            <span className="text-[9px] text-slate-500 font-mono">{t('Redeem with')} {getServicePointsCost(s)} {t('PTS')}</span>
-                          <span className="text-[8px] text-slate-500/80 font-mono block">Valued: {formatPrice(getServicePointsCost(s) * pointValue)}</span>
                         </div>
                       </div>
                     ))}
@@ -698,7 +764,7 @@ export default function ClientApp({
                             <h4 className="text-xs font-bold text-slate-200 line-clamp-1">{b.name}</h4>
                             <div className="flex items-center gap-1 justify-center mt-1">
                               <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                              <span className="text-[10px] font-bold text-slate-350">{b.rating.toFixed(1)}</span>
+                              <span className="text-[10px] font-bold text-slate-350">{getBarberRating(b).toFixed(1)}</span>
                             </div>
                           </div>
                         ));
@@ -1317,7 +1383,7 @@ export default function ClientApp({
                      <span className="text-[9px] text-amber-500 font-extrabold uppercase tracking-widest font-mono block">
                        {t('Limited Time VIP Campaign')}
                      </span>
-                    <h3 className="text-sm font-extrabold text-white leading-snug">{detailedPromo.title}</h3>
+                    <h3 className="text-sm font-extrabold !text-white leading-snug">{detailedPromo.title}</h3>
                   </div>
 
                   <p className="text-xs text-slate-400 leading-relaxed">

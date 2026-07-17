@@ -161,6 +161,30 @@ export default function AdminApp({
     return { total, revenue, activeClients, pending, avgRating };
   }, [appointments, users, reviews]);
 
+  // Auto-computed barber rating & review count from actual reviews
+  const barberStats = useMemo(() => {
+    const map: Record<string, { rating: number; count: number }> = {};
+    for (const r of reviews) {
+      if (!r.barberId) continue;
+      if (!map[r.barberId]) map[r.barberId] = { rating: 0, count: 0 };
+      map[r.barberId].rating += r.rating;
+      map[r.barberId].count += 1;
+    }
+    for (const id in map) {
+      map[id].rating = map[id].count > 0 ? map[id].rating / map[id].count : 0;
+    }
+    return map;
+  }, [reviews]);
+
+  const getBarberRating = (b: Barber): number => {
+    const s = barberStats[b.id];
+    return s && s.count > 0 ? s.rating : (b.rating || 0);
+  };
+  const getBarberReviewCount = (b: Barber): number => {
+    const s = barberStats[b.id];
+    return s ? s.count : (b.reviewsCount || 0);
+  };
+
   // Computed Completed Sales list and stats for the new interactive sales panel
   const { filteredSalesList, filteredSalesRevenue, avgTicketValue, topPerformingBarber } = useMemo(() => {
     let list = appointments.filter(a => a.status === 'completed');
@@ -1175,20 +1199,20 @@ export default function AdminApp({
                       <div>
                         <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{b.name}</h4>
                         <div className="flex items-center gap-1 mt-1 text-xs">
-                          <span className="font-mono text-[10px] text-amber-500 font-bold">{b.rating.toFixed(1)}</span>
+                          <span className="font-mono text-[10px] text-amber-500 font-bold">{getBarberRating(b).toFixed(1)}</span>
                           <div className="flex items-center">
                             {[...Array(5)].map((_, i) => (
                               <Star
                                 key={i}
                                 className={`h-2.5 w-2.5 ${
-                                  i < Math.floor(b.rating)
+                                  i < Math.floor(getBarberRating(b))
                                     ? 'fill-amber-400 stroke-none'
                                     : 'fill-slate-800 stroke-none'
                                 }`}
                               />
                             ))}
                           </div>
-                           <span className="text-[9px] text-slate-500 font-mono">({b.reviewsCount} {t('reviews')})</span>
+                           <span className="text-[9px] text-slate-500 font-mono">({getBarberReviewCount(b)} {t('reviews')})</span>
                         </div>
                       </div>
                     </div>
