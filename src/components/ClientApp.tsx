@@ -252,7 +252,7 @@ export default function ClientApp({
   };
 
   return (
-    <div className="flex flex-col bg-[#0b0f19] h-[100dvh] sm:h-[100dvh] sm:my-4 text-slate-100 relative rounded-[32px] overflow-hidden shadow-2xl border border-slate-800 font-sans max-w-md w-full mx-auto" style={{ minHeight: '680px' }}>
+    <div className="flex flex-col bg-[#0b0f19] h-[100dvh] sm:h-[100dvh] sm:my-4 text-slate-100 relative rounded-t-[32px] sm:rounded-[32px] overflow-hidden shadow-2xl border border-slate-800 font-sans max-w-md w-full mx-auto" style={{ minHeight: '680px' }}>
 
       {/* HEADER SECTION */}
       <header className="p-5 flex justify-between items-center bg-[#0d1321] border-b border-slate-800/80 shrink-0">
