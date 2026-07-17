@@ -88,6 +88,30 @@ function AppInner() {
     init();
   }, []);
 
+  // Live polling: keep dynamic data fresh so admin sees new client bookings
+  // and users see new notifications without a manual refresh.
+  useEffect(() => {
+    if (!currentUser) return;
+    const poll = async () => {
+      try {
+        const [a, n, u, r] = await Promise.all([
+          api.fetchAppointments(),
+          api.fetchNotifications(),
+          api.fetchUsers(),
+          api.fetchReviews(),
+        ]);
+        setAppointments(a);
+        setNotifications(n);
+        setAllUsers(u);
+        setReviews(r);
+      } catch {
+        /* ignore transient polling errors */
+      }
+    };
+    const id = setInterval(poll, 5000);
+    return () => clearInterval(id);
+  }, [currentUser]);
+
   const triggerToast = (title: string, message: string, type: NotificationToast['type']) => {
     setActiveToast({ id: 'toast_' + Math.floor(Math.random() * 100000), title, message, type });
   };

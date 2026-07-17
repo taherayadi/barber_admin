@@ -951,7 +951,7 @@ export default function AdminApp({
                                   <>
                                     <button
                                       onClick={() => onConfirmAppointment(a.id)}
-                                       className="py-1 px-3.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
+                                       className="py-1.5 px-3.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
                                      >
                                        {t('Approve')}
                                      </button>
@@ -969,7 +969,7 @@ export default function AdminApp({
                                   <>
                                     <button
                                       onClick={() => onCompleteAppointment(a.id)}
-                                       className="py-1 px-3.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
+                                       className="py-1.5 px-3.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
                                      >
                                        {t('Mark Complete')}
                                      </button>
@@ -1709,5 +1709,6 @@ export default function AdminApp({
     </div>
   );
 }
+
 
 

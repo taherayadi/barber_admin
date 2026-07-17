@@ -31,7 +31,7 @@ import { useT } from '../i18n';
 import { User, Barber, ServiceItem, Appointment, Review, Notification, ServiceCategory, Promotion } from '../types';
 import { formatPrice } from '../utils/format';
 import SettingsToggle from './SettingsToggle';
-import { SERVICES } from '../data';
+// NOTE: No static demo data is imported. All data comes from the API.
 
 interface ClientAppProps {
   user: User;
@@ -64,7 +64,7 @@ export default function ClientApp({
   onCancelAppointment,
   onMarkNotificationsRead,
   onRedeemPoints,
-  services = SERVICES,
+  services = [],
   categories = [],
   pointValue = 0.01,
   promotions = [],
@@ -1029,7 +1029,7 @@ export default function ClientApp({
             </motion.div>
           )}
 
-          {/* TAB 4: MOCK NOTIFICATIONS LIST */}
+          {/* TAB 4: NOTIFICATIONS LIST */}
           {activeTab === 'notifications' && (
             <motion.div
               key="notifications"
