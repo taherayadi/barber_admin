@@ -107,7 +107,6 @@ export default function AdminApp({
   const [newServiceDuration, setNewServiceDuration] = useState('');
   const [newServiceCategory, setNewServiceCategory] = useState(categories[0]?.id || '');
   const [newServicePoints, setNewServicePoints] = useState('15');
-  const [newServicePointsCost, setNewServicePointsCost] = useState('150');
   const [newServiceDesc, setNewServiceDesc] = useState('');
 
   // Barber Config State
@@ -276,13 +275,15 @@ export default function AdminApp({
     e.preventDefault();
     if (!newServiceName || !newServicePrice || !newServiceDuration) return;
 
+    const price = parseFloat(newServicePrice);
+    const computedPointsCost = pointValue > 0 ? Math.ceil(price / pointValue) : 150;
     onAddService({
       id: 's_' + Math.floor(Math.random() * 100000),
       name: newServiceName,
-      price: parseFloat(newServicePrice),
+      price,
       duration: parseInt(newServiceDuration),
       pointsGiven: parseInt(newServicePoints) || 15,
-      pointsCost: parseInt(newServicePointsCost) || 150,
+      pointsCost: computedPointsCost,
       description: newServiceDesc,
       category: newServiceCategory || categories[0]?.id || 'Haircuts'
     });
@@ -1399,11 +1400,11 @@ export default function AdminApp({
                       <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Points Cost to Redeem')}</label>
                       <input
                         type="number"
-                        required
-                        placeholder={t('150')}
-                        value={newServicePointsCost}
-                        onChange={e => setNewServicePointsCost(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
+                        disabled
+                        readOnly
+                        value={newServicePrice ? Math.ceil(parseFloat(newServicePrice) / (pointValue > 0 ? pointValue : 0.01)) : ''}
+                        placeholder={t('Auto-calculated')}
+                        className="w-full bg-slate-950/60 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-500 placeholder-slate-600 focus:outline-none cursor-not-allowed select-none"
                       />
                     </div>
 

@@ -223,6 +223,7 @@ const FR: Record<string, string> = {
   'Duration (minutes)': 'Durée (minutes)',
   'Loyalty Points Credited': 'Points de fidélité crédités',
   'Points Cost to Redeem': 'Coût en points pour échanger',
+  'Auto-calculated': 'Calculé automatiquement',
   'Service Description': 'Description du service',
   'e.g. Classic Beard Trim': 'Ex. Taille de barbe classique',
   '35.00': '35,00',
