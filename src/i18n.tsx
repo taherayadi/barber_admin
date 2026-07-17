@@ -191,6 +191,7 @@ const FR: Record<string, string> = {
   'Photo Avatar URL': 'URL de la photo (avatar)',
   'Short Professional Bio': 'Courte bio professionnelle',
   'Weekly Shift Slots': 'Créneaux hebdomadaires',
+  'Default schedule: 08:00 to 20:00, every 30 minutes.': 'Horaire par défaut : 08:00 à 20:00, toutes les 30 minutes.',
   'e.g. Jack Pierce': 'Ex. Jack Pierce',
   'Unsplash image URL...': 'URL d\'image Unsplash...',
   'Specialized in hot towel shaves with over 10 years experience...': 'Spécialisé dans les rasages à serviette chaude avec plus de 10 ans d\'expérience...',

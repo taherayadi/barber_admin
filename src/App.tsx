@@ -112,6 +112,9 @@ function AppInner() {
         setServices(s);
         setCategories(c);
         setPromotions(p);
+        // Keep the logged-in user's live data (e.g. loyalty points) in sync
+        const fresh = u.find((usr: User) => usr.id === currentUser.id);
+        if (fresh) setCurrentUser((prev: User | null) => prev ? { ...prev, ...fresh, password: undefined } : prev);
       } catch {
         /* ignore transient polling errors */
       }

@@ -108,7 +108,16 @@ export default function AdminApp({
   const [newBarberSpecialty, setNewBarberSpecialty] = useState('');
   const [newBarberBio, setNewBarberBio] = useState('');
   const [newBarberAvatar, setNewBarberAvatar] = useState('');
-  const [newBarberTimes, setNewBarberTimes] = useState<string[]>(['09:00 AM', '10:00 AM', '11:00 AM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM']);
+  const defaultBarberTimes = (): string[] => {
+    const slots: string[] = [];
+    for (let h = 8; h < 20; h++) {
+      for (const m of [0, 30]) {
+        slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      }
+    }
+    return slots; // 08:00 to 19:30, every 30 min
+  };
+  const [newBarberTimes, setNewBarberTimes] = useState<string[]>(defaultBarberTimes());
 
   // Custom Push Alert Modal / Form States
   const [selectedClientForNotif, setSelectedClientForNotif] = useState<string | null>(null);
@@ -158,21 +167,25 @@ export default function AdminApp({
     }
 
     if (salesPeriodFilter !== 'all') {
-      const nowStr = '2026-07-16';
-      const nowDate = new Date(nowStr);
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - 6);
+      const startOfMonth = new Date(now);
+      startOfMonth.setDate(now.getDate() - 29);
+      const toDayNum = (s: string) => {
+        const [y, m, d] = s.split('-').map(Number);
+        return new Date(y, m - 1, d).getTime();
+      };
       list = list.filter(a => {
-        const itemDate = new Date(a.date);
-        if (isNaN(itemDate.getTime())) return true;
-        
-        const diffMs = nowDate.getTime() - itemDate.getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
+        if (!a.date) return false;
+        const itemTime = toDayNum(a.date);
         if (salesPeriodFilter === 'today') {
-          return a.date === nowStr;
+          return a.date === todayStr;
         } else if (salesPeriodFilter === 'week') {
-          return diffDays >= 0 && diffDays <= 7;
+          return itemTime >= toDayNum(`${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}`);
         } else if (salesPeriodFilter === 'month') {
-          return diffDays >= 0 && diffDays <= 30;
+          return itemTime >= toDayNum(`${startOfMonth.getFullYear()}-${String(startOfMonth.getMonth() + 1).padStart(2, '0')}-${String(startOfMonth.getDate()).padStart(2, '0')}`);
         }
         return true;
       });
@@ -335,7 +348,9 @@ export default function AdminApp({
     const ra = statusRank[a.status] ?? 9;
     const rb = statusRank[b.status] ?? 9;
     if (ra !== rb) return ra - rb;
-    return a.date.localeCompare(b.date) || a.time.localeCompare(b.time);
+    // Within the same status: completed shows newest first, others oldest first
+    const cmp = a.date.localeCompare(b.date) || a.time.localeCompare(b.time);
+    return a.status === 'completed' ? -cmp : cmp;
   });
 
   const filteredClients = users.filter(u => {
@@ -656,7 +671,7 @@ export default function AdminApp({
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
                     >
                       <option value="all">{t('All Time')}</option>
-                      <option value="today">{t('Today (Jul 16, 2026)')}</option>
+                      <option value="today">{t('Today')}</option>
                       <option value="week">{t('This Week (Last 7 Days)')}</option>
                       <option value="month">{t('This Month (Last 30 Days)')}</option>
                     </select>
@@ -1086,31 +1101,9 @@ export default function AdminApp({
 
                   <div className="md:col-span-2 flex flex-col gap-1 mt-1 justify-center">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">{t('Weekly Shift Slots')}</span>
-                    <div className="flex gap-1.5 mt-1.5">
-                      {['09:00 AM', '10:00 AM', '11:00 AM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM'].map(time => {
-                        const isSel = newBarberTimes.includes(time);
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            onClick={() => {
-                              if (isSel) {
-                                setNewBarberTimes(newBarberTimes.filter(t => t !== time));
-                              } else {
-                                setNewBarberTimes([...newBarberTimes, time]);
-                              }
-                            }}
-                            className={`px-2 py-1.5 rounded-lg font-mono text-[9px] font-bold border cursor-pointer transition-all ${
-                              isSel 
-                                ? 'bg-amber-500/10 border-amber-500 text-amber-400 font-extrabold'
-                                : 'bg-slate-950 border-slate-850 text-slate-500 hover:border-slate-700'
-                            }`}
-                          >
-                            {time.split(' ')[0]}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <p className="text-[11px] text-slate-500 font-mono mt-1.5">
+                      {t('Default schedule: 08:00 to 20:00, every 30 minutes.')}
+                    </p>
                   </div>
                 </form>
               </div>
