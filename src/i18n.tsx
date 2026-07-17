@@ -343,6 +343,7 @@ const FR: Record<string, string> = {
   'Request Custom Appointment': 'Demander un rendez-vous personnalisé',
   'Promo Applied: {discount} on checkout': 'Promo appliquée : {discount} à la caisse',
   '1. Select Operation': '1. Choisir l\'opération',
+  'No operations listed in this category yet.': 'Aucune opération listée dans cette catégorie pour le moment.',
   'min duration': 'min de durée',
   'Redeem with {n} PTS': 'Échanger avec {n} PTS',
   'Valued: $X': 'Valeur : X TND',
