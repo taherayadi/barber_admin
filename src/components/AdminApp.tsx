@@ -91,6 +91,7 @@ export default function AdminApp({
 
   // Filter/Search States
   const [appFilter, setAppFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
+  const [appPeriodFilter, setAppPeriodFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'month'>('all');
   const [customerSearch, setCustomerSearch] = useState('');
 
   // Closed Sales Ledger States
@@ -421,9 +422,30 @@ export default function AdminApp({
     setPointsDeltaValue('20');
   };
 
+  // Date helpers for the bookings queue period filter
+  const periodBounds = () => {
+    const now = new Date();
+    const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const todayStr = ymd(now);
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+    const yesterdayStr = ymd(yesterday);
+    const weekStart = new Date(now); weekStart.setDate(now.getDate() - 6);
+    const weekStartStr = ymd(weekStart);
+    const monthStart = new Date(now); monthStart.setDate(now.getDate() - 29);
+    const monthStartStr = ymd(monthStart);
+    return { todayStr, yesterdayStr, weekStartStr, monthStartStr };
+  };
+
   const filteredAppointments = appointments.filter(a => {
-    if (appFilter === 'all') return true;
-    return a.status === appFilter;
+    if (appFilter !== 'all' && a.status !== appFilter) return false;
+    if (appPeriodFilter !== 'all') {
+      const { todayStr, yesterdayStr, weekStartStr, monthStartStr } = periodBounds();
+      if (appPeriodFilter === 'today' && a.date !== todayStr) return false;
+      if (appPeriodFilter === 'yesterday' && a.date !== yesterdayStr) return false;
+      if (appPeriodFilter === 'week' && a.date < weekStartStr) return false;
+      if (appPeriodFilter === 'month' && a.date < monthStartStr) return false;
+    }
+    return true;
   });
 
   // Always keep actionable items on top: pending -> confirmed -> cancelled -> completed
@@ -985,25 +1007,55 @@ export default function AdminApp({
             <div className="space-y-6 animate-fadeIn">
               
               {/* Queue Controls Filter Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/35 p-4 rounded-2xl border border-slate-850">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-amber-500" />
-                  <span className="text-xs font-semibold text-slate-350 uppercase">{t('Filter by Status:')}</span>
+              <div className="flex flex-col gap-4 bg-slate-900/35 p-4 rounded-2xl border border-slate-850">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs font-semibold text-slate-350 uppercase">{t('Filter by Status:')}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map(f => (
+                      <button
+                        key={f}
+                        onClick={() => setAppFilter(f)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border-none cursor-pointer whitespace-nowrap ${
+                          appFilter === f
+                            ? 'bg-amber-500 text-slate-950 shadow-sm'
+                            : 'bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                        }`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map(f => (
-                    <button
-                      key={f}
-                      onClick={() => setAppFilter(f)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border-none cursor-pointer whitespace-nowrap ${
-                        appFilter === f
-                          ? 'bg-amber-500 text-slate-950 shadow-sm'
-                          : 'bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                      }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
+
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:border-t sm:border-slate-850/60 sm:pt-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs font-semibold text-slate-350 uppercase">{t('Filter by Date:')}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {([
+                      { v: 'all', l: t('All Time') },
+                      { v: 'today', l: t('Today') },
+                      { v: 'yesterday', l: t('Yesterday') },
+                      { v: 'week', l: t('Last Week') },
+                      { v: 'month', l: t('Last Month') },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.v}
+                        onClick={() => setAppPeriodFilter(opt.v)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border-none cursor-pointer whitespace-nowrap ${
+                          appPeriodFilter === opt.v
+                            ? 'bg-amber-500 text-slate-950 shadow-sm'
+                            : 'bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                        }`}
+                      >
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1026,7 +1078,7 @@ export default function AdminApp({
                       {filteredAppointments.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="p-12 text-center text-slate-500">
-                            {t('No appointments found with state matching')} "{appFilter}".
+                            {t('No appointments found with the selected filters.')}
                           </td>
                         </tr>
                       ) : (
