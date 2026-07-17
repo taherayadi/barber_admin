@@ -1,4 +1,5 @@
 import { Env, jsonResponse } from '../_middleware';
+import { hashPassword } from './_auth';
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { results } = await context.env.DB.prepare('SELECT * FROM users').all();
@@ -11,8 +12,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const u = await context.request.json() as any;
+  const passwordHash = u.password ? await hashPassword(u.password) : '';
   await context.env.DB.prepare(
-    'INSERT INTO users (id, name, email, role, loyalty_points, avatar) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(u.id, u.name, u.email, u.role || 'client', u.loyaltyPoints || 0, u.avatar || '').run();
-  return jsonResponse(u, 201);
+    'INSERT INTO users (id, name, email, role, loyalty_points, avatar, password) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(u.id, u.name, u.email, u.role || 'client', u.loyaltyPoints || 0, u.avatar || '', passwordHash).run();
+  return jsonResponse({ ...u, password: undefined }, 201);
 };

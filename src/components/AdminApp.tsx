@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { User, Appointment, Barber, Review, ServiceItem, ServiceCategory, Promotion } from '../types';
 import { useT } from '../i18n';
+import { formatPrice } from '../utils/format';
 
 interface AdminAppProps {
   currentUser: User;
@@ -210,7 +211,7 @@ export default function AdminApp({
     Object.entries(barberCounts).forEach(([name, sales]) => {
       if (sales > maxSales) {
         maxSales = sales;
-        topBarber = `${name} ($${sales.toFixed(0)})`;
+        topBarber = `${name} (${formatPrice(sales)})`;
       }
     });
 
@@ -473,9 +474,9 @@ export default function AdminApp({
           <div className="flex items-center gap-3">
             <div className="bg-slate-950 px-3.5 py-1.5 rounded-xl border border-slate-850 flex items-center gap-3 text-xs">
               <Award className="h-3.5 w-3.5 text-amber-500" />
-              <span className="font-mono text-[10.5px] text-slate-400">
-                 {t('1 Point =')} <strong className="text-amber-500">${pointValue.toFixed(2)}</strong> {t('USD')}
-               </span>
+               <span className="font-mono text-[10.5px] text-slate-400">
+                   {t('1 Point =')} <strong className="text-amber-500">{formatPrice(pointValue)}</strong>
+                </span>
               <div className="flex items-center gap-1.5 ml-2 border-l border-slate-850 pl-2">
                 <button 
                   onClick={() => onUpdatePointValue(Math.max(0.01, pointValue - 0.01))}
@@ -528,7 +529,7 @@ export default function AdminApp({
                     <DollarSign className="h-20 w-20 text-amber-500" />
                   </div>
                   <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">{t('Closed Sales')}</p>
-                  <p className="text-2xl font-black text-amber-500 mt-2 font-mono">${metrics.revenue.toFixed(2)}</p>
+                   <p className="text-2xl font-black text-amber-500 mt-2 font-mono">{formatPrice(metrics.revenue)}</p>
                   <div className="mt-4 flex items-center gap-1.5 text-[10px] text-emerald-400 bg-emerald-950/25 px-2 py-1 rounded-lg w-max">
                     <TrendingUp className="h-3 w-3" />
                     {t('+12% this week')}
@@ -683,9 +684,9 @@ export default function AdminApp({
                   
                   <div className="px-4 py-3 border-r border-slate-850/65 last:border-none">
                     <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Filtered Sales Revenue')}</span>
-                    <span className="text-xl font-black text-amber-500 font-mono block mt-1">
-                      ${filteredSalesRevenue.toFixed(2)}
-                    </span>
+                     <span className="text-xl font-black text-amber-500 font-mono block mt-1">
+                       {formatPrice(filteredSalesRevenue)}
+                     </span>
                   </div>
 
                   <div className="px-4 py-3 border-r border-slate-850/65 last:border-none">
@@ -697,9 +698,9 @@ export default function AdminApp({
 
                   <div className="px-4 py-3 border-r border-slate-850/65 last:border-none">
                     <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Average Ticket Value')}</span>
-                    <span className="text-xl font-black text-slate-200 font-mono block mt-1">
-                      ${avgTicketValue.toFixed(2)}
-                    </span>
+                     <span className="text-xl font-black text-slate-200 font-mono block mt-1">
+                       {formatPrice(avgTicketValue)}
+                     </span>
                   </div>
 
                   <div className="px-4 py-3 last:border-none">
@@ -758,9 +759,9 @@ export default function AdminApp({
                                <td className="p-3 font-mono text-emerald-400 font-bold">
                                  +{item.service.pointsGiven} {t('PTS')}
                                </td>
-                              <td className="p-3 pr-5 text-right font-mono font-black text-amber-500">
-                                ${item.price.toFixed(2)}
-                              </td>
+                               <td className="p-3 pr-5 text-right font-mono font-black text-amber-500">
+                                 {formatPrice(item.price)}
+                               </td>
                             </tr>
                           ))
                         )}
@@ -834,7 +835,7 @@ export default function AdminApp({
                         <div key={a.id} className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl flex justify-between items-center gap-4">
                           <div>
                             <p className="text-xs font-bold text-slate-200 leading-none">{a.clientName}</p>
-                            <p className="text-[10px] text-amber-500 mt-1">{a.service.name} • ${a.service.price}</p>
+                             <p className="text-[10px] text-amber-500 mt-1">{a.service.name} • {formatPrice(a.service.price)}</p>
                             <p className="text-[10px] text-slate-500 mt-0.5">{t('With')} {a.barberName} {t('on')} {a.date} {t('at')} {a.time}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -929,9 +930,9 @@ export default function AdminApp({
                               <p className="font-bold text-slate-200 font-sans">{a.date}</p>
                               <p className="text-[10px] font-mono text-slate-500 mt-0.5">{a.time}</p>
                             </td>
-                            <td className="p-4 font-mono font-bold text-slate-300">
-                              ${a.price.toFixed(2)}
-                            </td>
+                             <td className="p-4 font-mono font-bold text-slate-300">
+                               {formatPrice(a.price)}
+                             </td>
                             <td className="p-4">
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 a.status === 'pending' ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' :
@@ -1366,7 +1367,7 @@ export default function AdminApp({
                           <span className="text-[9px] font-mono uppercase bg-slate-950 text-slate-450 px-2.5 py-1 rounded-xl border border-slate-850 font-bold">
                             {s.category}
                           </span>
-                          <span className="text-xs font-mono font-bold text-amber-500 pr-6">${s.price.toFixed(2)}</span>
+                          <span className="text-xs font-mono font-bold text-amber-500 pr-6">{formatPrice(s.price)}</span>
                         </div>
 
                         <h5 className="text-xs font-black uppercase tracking-wider text-slate-200 mt-2">{s.name}</h5>

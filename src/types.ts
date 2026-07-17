@@ -10,6 +10,7 @@ export interface User {
   role: 'client' | 'admin';
   loyaltyPoints: number;
   avatar: string;
+  password?: string;
 }
 
 export interface Barber {

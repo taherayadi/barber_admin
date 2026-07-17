@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useT } from '../i18n';
 import { User, Barber, ServiceItem, Appointment, Review, Notification, ServiceCategory, Promotion } from '../types';
+import { formatPrice } from '../utils/format';
 import { SERVICES } from '../data';
 
 interface ClientAppProps {
@@ -430,11 +431,11 @@ export default function ClientApp({
                         <span className="text-xs font-semibold text-slate-400 font-sans tracking-normal">{t('points')}</span>
                       </p>
                       <p className="text-[10px] text-slate-450 font-mono flex items-center gap-1.5 flex-wrap">
-                        <span className="px-1.5 py-0.5 bg-slate-950/80 text-amber-500 font-black rounded-lg border border-slate-850">
-                           {t('Est. Value')}: ${(userLoyaltyPoints * pointValue).toFixed(2)} {t('USD')}
-                        </span>
-                        <span className="text-slate-600">•</span>
-                         <span className="text-slate-500 font-medium">{t('1 PT')} = ${pointValue.toFixed(4).replace(/\.?0+$/, '')}</span>
+                         <span className="px-1.5 py-0.5 bg-slate-950/80 text-amber-500 font-black rounded-lg border border-slate-850">
+                            {t('Est. Value')}: {formatPrice(userLoyaltyPoints * pointValue)}
+                         </span>
+                         <span className="text-slate-600">•</span>
+                          <span className="text-slate-500 font-medium">{t('1 PT')} = {formatPrice(pointValue)}</span>
                       </p>
                     </div>
                   </div>
@@ -570,13 +571,13 @@ export default function ClientApp({
                         </p>
                       </div>
                       <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-slate-900">
-                        <span className="text-xs font-extrabold text-amber-500">${s.price}</span>
+                        <span className="text-xs font-extrabold text-amber-500">{formatPrice(s.price)}</span>
                         <div className="flex flex-col items-end">
                           <span className="text-[9px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded">
                              +{s.pointsGiven} {t('PTS')}
                           </span>
                           <span className="text-[8px] font-mono text-slate-500 scale-[0.9] origin-right mt-0.5">
-                            val. ${(s.pointsGiven * pointValue).toFixed(2)}
+                            val. {formatPrice(s.pointsGiven * pointValue)}
                           </span>
                         </div>
                       </div>
@@ -648,9 +649,9 @@ export default function ClientApp({
                            <span className="text-[10px] text-slate-500">{s.duration} {t('min duration')}</span>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-amber-500 block">${s.price}</span>
+                          <span className="text-xs font-black text-amber-500 block">{formatPrice(s.price)}</span>
                             <span className="text-[9px] text-slate-500 font-mono">{t('Redeem with')} {getServicePointsCost(s)} {t('PTS')}</span>
-                          <span className="text-[8px] text-slate-500/80 font-mono block">Valued: ${(getServicePointsCost(s) * pointValue).toFixed(2)}</span>
+                          <span className="text-[8px] text-slate-500/80 font-mono block">Valued: {formatPrice(getServicePointsCost(s) * pointValue)}</span>
                         </div>
                       </div>
                     ))}
@@ -827,9 +828,9 @@ export default function ClientApp({
                           <Gift className="h-4 w-4 text-amber-500" />
                            <span className="text-xs font-bold text-slate-300">{t('Spend loyalty points?')}</span>
                         </div>
-                           <span className="text-[11px] text-slate-500 font-mono font-bold">
-                              {t('Avail')}: {userLoyaltyPoints} {t('PTS')} (${(userLoyaltyPoints * pointValue).toFixed(2)})
-                           </span>
+                            <span className="text-[11px] text-slate-500 font-mono font-bold">
+                               {t('Avail')}: {userLoyaltyPoints} {t('PTS')} ({formatPrice(userLoyaltyPoints * pointValue)})
+                            </span>
                       </div>
                       
                       {/* Option 1: Redeem fully for FREE (if they have enough points for pointsCost) */}
@@ -846,7 +847,7 @@ export default function ClientApp({
                             className="rounded border-slate-800 bg-slate-950 text-amber-500 focus:ring-amber-500/40 h-4 w-4 mt-0.5 cursor-pointer"
                           />
                            <label htmlFor="redeem_pts" className="text-[11px] text-slate-300 cursor-pointer select-none leading-normal">
-                                                           {t('Redeem')} <strong className="text-amber-400 font-mono">{getServicePointsCost(selectedService)} {t('PTS')}</strong> <span className="text-slate-500 text-[10px] font-mono">{t('(worth $(worth))', { worth: (getServicePointsCost(selectedService) * pointValue).toFixed(2) })}</span> {t('to get this treatment completely')} <strong className="text-emerald-400">{t('FREE')}</strong>!
+                                                            {t('Redeem')} <strong className="text-amber-400 font-mono">{getServicePointsCost(selectedService)} {t('PTS')}</strong> <span className="text-slate-500 text-[10px] font-mono">{t('(worth {worth} TND)', { worth: (getServicePointsCost(selectedService) * pointValue).toFixed(2) })}</span> {t('to get this treatment completely')} <strong className="text-emerald-400">{t('FREE')}</strong>!
                            </label>
                         </div>
                       ) : (
@@ -875,9 +876,9 @@ export default function ClientApp({
                                 }}
                                 className="rounded border-slate-800 bg-slate-950 text-amber-500 focus:ring-amber-500/40 h-4 w-4 mt-0.5 cursor-pointer"
                               />
-                               <label htmlFor="redeem_discount" className="text-[11px] text-slate-300 cursor-pointer select-none leading-normal">
-                                                                   {t('Use point balance cash-in: spend')} <strong className="text-amber-400 font-mono">{pointsNeeded} {t('PTS')}</strong> {t('to get a direct')} <strong className="text-rose-400">-${actualDiscount.toFixed(2)}</strong> {t('partial discount!')}
-                               </label>
+                                <label htmlFor="redeem_discount" className="text-[11px] text-slate-300 cursor-pointer select-none leading-normal">
+                                                                    {t('Use point balance cash-in: spend')} <strong className="text-amber-400 font-mono">{pointsNeeded} {t('PTS')}</strong> {t('to get a direct')} <strong className="text-rose-400">-{actualDiscount.toFixed(2)} TND</strong> {t('partial discount!')}
+                                </label>
                             </div>
                           );
                         })()
@@ -904,24 +905,24 @@ export default function ClientApp({
                             const discount = Math.min(userPointsValue, basePriceAfterPromo);
                             const finalPrice = Math.max(0, basePriceAfterPromo - discount);
                             return (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-slate-500 line-through">${selectedService.price}</span>
-                                 {appliedPromo && (
-                                   <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-sans uppercase">{t('Promo')}</span>
-                                 )}
-                                 <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-sans uppercase">-{discount.toFixed(2)} {t('pts')}</span>
-                                <span className="text-amber-400 font-bold">${finalPrice.toFixed(2)}</span>
-                              </div>
-                            );
-                          })()
-                        ) : appliedPromo ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 line-through">${selectedService.price}</span>
-                            <span className="text-amber-400 font-bold">${getDiscountedPrice(selectedService.price)}</span>
-                          </div>
-                        ) : (
-                          `$${selectedService.price}`
-                        )}
+                                 <div className="flex items-center gap-2">
+                                 <span className="text-xs text-slate-500 line-through">{formatPrice(selectedService.price)}</span>
+                                  {appliedPromo && (
+                                    <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-sans uppercase">{t('Promo')}</span>
+                                  )}
+                                  <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-sans uppercase">-{discount.toFixed(2)} {t('pts')}</span>
+                                 <span className="text-amber-400 font-bold">{formatPrice(finalPrice)}</span>
+                               </div>
+                             );
+                           })()
+                         ) : appliedPromo ? (
+                           <div className="flex items-center gap-2">
+                             <span className="text-xs text-slate-500 line-through">{formatPrice(selectedService.price)}</span>
+                             <span className="text-amber-400 font-bold">{formatPrice(getDiscountedPrice(selectedService.price))}</span>
+                           </div>
+                         ) : (
+                           formatPrice(selectedService.price)
+                         )}
                       </span>
                     </div>    </div>
 
@@ -1000,9 +1001,9 @@ export default function ClientApp({
                         <div className="flex justify-between items-center mt-4 pt-3.5 border-t border-slate-900/80">
                           <div>
                              <span className="text-[10px] text-slate-500 block">{t('Payment Method')}</span>
-                            <span className="text-xs font-black text-slate-100">
-                              {app.price === 0 ? t('Loyalty Points Redeemed') : `$${app.price} ${t('Visa Inc.')}`}
-                            </span>
+                             <span className="text-xs font-black text-slate-100">
+                               {app.price === 0 ? t('Loyalty Points Redeemed') : `${formatPrice(app.price)} ${t('Visa Inc.')}`}
+                             </span>
                           </div>
                           
                           {/* Rating and Points display */}

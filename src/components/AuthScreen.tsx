@@ -8,11 +8,12 @@ import { motion } from 'motion/react';
 import { Scissors, Mail, Lock, User as UserIcon, LogIn, ArrowRight, Sun, Moon, Languages } from 'lucide-react';
 import { User } from '../types';
 import { useT, useSettings } from '../i18n';
+import * as api from '../api';
 
 interface AuthScreenProps {
   onLogin: (user: User) => void;
   allUsers: User[];
-  onRegister: (name: string, email: string, role: 'client' | 'admin') => void;
+  onRegister: (name: string, email: string, password: string, role: 'client' | 'admin') => void;
 }
 
 function AuthSettingsToggle() {
@@ -40,26 +41,36 @@ function AuthSettingsToggle() {
 
 export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreenProps) {
   const t = useT();
+  const [loginRole, setLoginRole] = useState<'admin' | 'client'>('client');
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('password123'); // Preset for mock
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'client' | 'admin'>('admin');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (isLogin) {
-      const found = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (found) {
-        onLogin(found);
-      } else {
-        setError(t('Invalid credentials. Try quick logins below for a seamless test!'));
+      try {
+        setBusy(true);
+        const user = await api.loginUser(email, password);
+        setBusy(false);
+        if (user.role !== loginRole) {
+          setError(user.role === 'admin'
+            ? t('This account is an admin. Please switch to Admin login.')
+            : t('This account is a client. Please switch to Client login.'));
+          return;
+        }
+        onLogin(user);
+      } catch (err: any) {
+        setBusy(false);
+        setError(t('Invalid credentials. Check your email and password.'));
       }
     } else {
-      if (!name || !email) {
+      if (!name || !email || !password) {
         setError(t('Please fill in all details.'));
         return;
       }
@@ -68,7 +79,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
         setError(t('A user with this email already exists.'));
         return;
       }
-      onRegister(name, email, role);
+      onRegister(name, email, password, 'client');
     }
   };
 
@@ -108,6 +119,26 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
         </div>
 
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 p-8 rounded-3xl shadow-2xl space-y-6">
+          {/* Role switch (login only) */}
+          {isLogin && (
+            <div className="flex items-center gap-2 p-1 bg-slate-950/60 rounded-xl border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setLoginRole('client')}
+                className={`flex-1 py-2 rounded-lg text-sm font-bold font-sans transition-all border-none cursor-pointer ${loginRole === 'client' ? 'bg-amber-500 text-slate-950' : 'bg-transparent text-slate-400 hover:text-slate-200'}`}
+              >
+                {t('Client')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginRole('admin')}
+                className={`flex-1 py-2 rounded-lg text-sm font-bold font-sans transition-all border-none cursor-pointer ${loginRole === 'admin' ? 'bg-amber-500 text-slate-950' : 'bg-transparent text-slate-400 hover:text-slate-200'}`}
+              >
+                {t('Admin')}
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="p-3.5 text-xs bg-red-950/40 border border-red-500/30 text-red-400 rounded-xl font-sans">
@@ -116,39 +147,23 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
             )}
 
             {!isLogin && (
-              <>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 font-sans">
-                    {t('Full Name')}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
-                      <UserIcon className="h-5 w-5" />
-                    </span>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={t('E.g., Jack Pierce')}
-                      className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 text-slate-200 placeholder-slate-600 text-sm transition-all"
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 font-sans">
+                  {t('Full Name')}
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                    <UserIcon className="h-5 w-5" />
+                  </span>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t('E.g., Jack Pierce')}
+                    className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 text-slate-200 placeholder-slate-600 text-sm transition-all"
+                  />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 font-sans">
-                    {t('Account Role')}
-                  </label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as 'client' | 'admin')}
-                    className="block w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 text-slate-200 text-sm transition-all"
-                  >
-                    <option value="admin">{t('Administrator (Admin Panel Access)')}</option>
-                    <option value="client">{t('Client Customer Profile')}</option>
-                  </select>
-                </div>
-              </>
+              </div>
             )}
 
             <div>
@@ -196,7 +211,8 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold font-sans rounded-xl text-sm shadow-lg shadow-amber-950/20 hover:shadow-amber-500/10 flex items-center justify-center gap-2 cursor-pointer border-none transition-all mt-6"
+              disabled={busy}
+              className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold font-sans rounded-xl text-sm shadow-lg shadow-amber-950/20 hover:shadow-amber-500/10 flex items-center justify-center gap-2 cursor-pointer border-none transition-all mt-6 disabled:opacity-60"
             >
               {isLogin ? (
                 <>

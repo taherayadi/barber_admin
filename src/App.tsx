@@ -8,6 +8,7 @@ import { SettingsProvider, useSettings, useT } from './i18n';
 import AuthScreen from './components/AuthScreen';
 import NotificationBanner from './components/NotificationBanner';
 import AdminApp from './components/AdminApp';
+import ClientApp from './components/ClientApp';
 
 interface NotificationToast {
   id: string;
@@ -126,17 +127,78 @@ function AppInner() {
     triggerToast(t('Access Expired'), t('You have successfully logged out of the parlor portal.'), 'system');
   };
 
-  const handleRegister = async (name: string, email: string, role: 'client' | 'admin') => {
+  const handleRegister = async (name: string, email: string, password: string, role: 'client' | 'admin') => {
     const newUser: User = {
       id: 'u_' + Math.floor(Math.random() * 100000),
-      name, email, role: role || 'admin',
+      name, email, role: role || 'client',
       loyaltyPoints: role === 'client' ? 25 : 0,
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
+      password
     };
-    await api.createUser(newUser);
-    const updated = [...allUsers, newUser];
+    const created = await api.createUser(newUser) as User;
+    const stored: User = { ...created, password: undefined };
+    const updated = [...allUsers, stored];
     setAllUsers(updated);
-    handleLogin(newUser);
+    handleLogin(stored);
+  };
+
+  const handleAddReview = async (barberId: string, rating: number, comment: string) => {
+    if (!currentUser) return;
+    const newReview: Review = {
+      id: 'r_' + Math.floor(Math.random() * 100000),
+      barberId, clientName: currentUser.name, rating, comment,
+      date: new Date().toISOString().slice(0, 10)
+    };
+    await api.createReview(newReview);
+    setReviews(prev => [...prev, newReview]);
+  };
+
+  const handleAddAppointment = async (appointment: Appointment) => {
+    const created = await api.createAppointment(appointment);
+    setAppointments(prev => [...prev, created]);
+    const newNotif: Notification = {
+      id: 'notif_' + Math.floor(Math.random() * 100000),
+      clientId: appointment.clientId,
+      title: 'Booking Received',
+      message: `Your request with ${appointment.barberName} on ${appointment.date} at ${appointment.time} has been received and is awaiting approval.`,
+      date: new Date().toISOString(), read: false, type: 'booking'
+    };
+    await api.createNotification(newNotif);
+    setNotifications(prev => [...prev, newNotif]);
+  };
+
+  const handleClientCancelAppointment = async (id: string) => {
+    const target = appointments.find(a => a.id === id);
+    await api.deleteAppointment(id);
+    setAppointments(prev => prev.filter(a => a.id !== id));
+    if (target) {
+      const newNotif: Notification = {
+        id: 'notif_' + Math.floor(Math.random() * 100000),
+        clientId: target.clientId,
+        title: 'Appointment Cancelled',
+        message: `Your appointment with ${target.barberName} has been cancelled.`,
+        date: new Date().toISOString(), read: false, type: 'booking'
+      };
+      await api.createNotification(newNotif);
+      setNotifications(prev => [...prev, newNotif]);
+    }
+  };
+
+  const handleMarkNotificationsRead = async () => {
+    const unread = notifications.filter(n => !n.read);
+    for (const n of unread) {
+      await api.markNotificationRead(n.id, true);
+    }
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const handleRedeemPoints = async (pointsCost: number) => {
+    if (!currentUser) return;
+    const next = Math.max(0, currentUser.loyaltyPoints - pointsCost);
+    const updated = { ...currentUser, loyaltyPoints: next };
+    await api.updateUser(updated);
+    setCurrentUser(updated);
+    setAllUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
   };
 
   const handleConfirmAppointment = async (id: string) => {
@@ -324,7 +386,7 @@ function AppInner() {
           allUsers={allUsers}
           onRegister={handleRegister}
         />
-      ) : (
+      ) : currentUser.role === 'admin' ? (
         <AdminApp
           currentUser={currentUser}
           onLogout={handleLogout}
@@ -350,6 +412,24 @@ function AppInner() {
           promotions={promotions}
           onAddPromotion={handleAddPromotion}
           onRemovePromotion={handleRemovePromotion}
+        />
+      ) : (
+        <ClientApp
+          user={currentUser}
+          onLogout={handleLogout}
+          appointments={appointments}
+          barbers={barbers}
+          reviews={reviews}
+          notifications={notifications}
+          onAddReview={handleAddReview}
+          onAddAppointment={handleAddAppointment}
+          onCancelAppointment={handleClientCancelAppointment}
+          onMarkNotificationsRead={handleMarkNotificationsRead}
+          onRedeemPoints={handleRedeemPoints}
+          services={services}
+          categories={categories}
+          pointValue={pointValue}
+          promotions={promotions}
         />
       )}
     </div>

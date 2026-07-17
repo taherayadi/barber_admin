@@ -69,6 +69,11 @@
   .text-white { color: #0f172a; }
   .text-\[\#0d1321\] { color: #0f172a; }
 
+  /* --- Emerald/green accent text -> dark green on light --- */
+  .text-emerald-400 { color: #047857 !important; }
+  .text-emerald-500 { color: #047857 !important; }
+  .text-\[\#00d492\] { color: #047857 !important; }
+
   /* --- Borders -> light gray --- */
   .border-slate-700 { border-color: #e2e8f0; }
   .border-slate-800 { border-color: #e2e8f0; }
@@ -91,4 +96,11 @@
   .via-slate-950\/40 { --tw-gradient-to: rgba(241,245,249,0.6); }
   .ring-\[\#0d1321\] { --tw-ring-color: #e2e8f0; }
   .fill-slate-950 { fill: #0f172a; }
+
+  /* --- Sidebar/menu hover: keep dark -> light in light mode --- */
+  .hover\:bg-slate-900:hover { background-color: #e2e8f0 !important; }
+  .hover\:bg-slate-900\/10:hover { background-color: rgba(15,23,42,0.06) !important; }
+  .hover\:bg-slate-900\/20:hover { background-color: rgba(15,23,42,0.06) !important; }
+  .hover\:bg-slate-800:hover { background-color: #e2e8f0 !important; }
+  .hover\:text-slate-200:hover { color: #0f172a !important; }
 }

@@ -34,6 +34,10 @@ export async function deleteBarber(id: string): Promise<void> {
 export async function fetchUsers(): Promise<User[]> {
   return api<User[]>('/users');
 }
+
+export async function loginUser(email: string, password: string): Promise<User> {
+  return api<User>('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+}
 export async function createUser(u: User): Promise<User> {
   return api<User>('/users', { method: 'POST', body: JSON.stringify(u) });
 }

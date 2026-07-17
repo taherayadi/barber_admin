@@ -8,7 +8,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const stmts = [
     db.prepare(`INSERT INTO barbers (id, name, specialty, rating, reviews_count, avatar, bio, available_times) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),
-    db.prepare(`INSERT INTO users (id, name, email, role, loyalty_points, avatar) VALUES (?, ?, ?, ?, ?, ?)`),
+    db.prepare(`INSERT INTO users (id, name, email, role, loyalty_points, avatar, password) VALUES (?, ?, ?, ?, ?, ?, ?)`),
     db.prepare(`INSERT INTO services (id, name, price, duration, points_given, points_cost, description, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),
     db.prepare(`INSERT INTO categories (id, name, description, bg_class, fill_class, text_class) VALUES (?, ?, ?, ?, ?, ?)`),
     db.prepare(`INSERT INTO appointments (id, client_id, client_name, client_email, barber_id, barber_name, date, time, service, price, status, points_earned, points_redeemed, rated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
@@ -26,9 +26,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   ];
 
   const userData = [
-    ['u1','Taher Ayadi','taherayadi1990@gmail.com','client',120,'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'],
-    ['u2','Alex Mercer','alex@gmail.com','client',35,'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&q=80&w=200'],
-    ['admin1','Barberhouse Admin','admin@barbershop.com','admin',0,'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200'],
+    ['u1','Taher Ayadi','taherayadi1990@gmail.com','client',120,'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',''],
+    ['u2','Alex Mercer','alex@gmail.com','client',35,'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&q=80&w=200',''],
+    ['admin1','Barberhouse Admin','admin@barbershop.com','admin',0,'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200','240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9'],
   ];
 
   const serviceData = [
