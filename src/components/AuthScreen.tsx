@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Scissors, Mail, Lock, User as UserIcon, LogIn, ArrowRight } from 'lucide-react';
+import { Scissors, Mail, Lock, User as UserIcon, LogIn, ArrowRight, Phone } from 'lucide-react';
 import { User } from '../types';
 import { useT } from '../i18n';
 import * as api from '../api';
@@ -14,7 +14,7 @@ import SettingsToggle from './SettingsToggle';
 interface AuthScreenProps {
   onLogin: (user: User) => void;
   allUsers: User[];
-  onRegister: (name: string, email: string, password: string, role: 'client' | 'admin') => void;
+  onRegister: (name: string, email: string, phone: string, password: string, role: 'client' | 'admin') => void;
 }
 
 export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreenProps) {
@@ -24,6 +24,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -48,7 +49,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
         setError(t('Invalid credentials. Check your email and password.'));
       }
     } else {
-      if (!name || !email || !password) {
+      if (!name || !email || !phone || !password) {
         setError(t('Please fill in all details.'));
         return;
       }
@@ -57,7 +58,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
         setError(t('A user with this email already exists.'));
         return;
       }
-      onRegister(name, email, password, 'client');
+      onRegister(name, email, phone, password, 'client');
     }
   };
 
@@ -115,23 +116,43 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
             )}
 
             {!isLogin && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 font-sans">
-                  {t('Full Name')}
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
-                    <UserIcon className="h-5 w-5" />
-                  </span>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={t('E.g., Jack Pierce')}
-                    className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 text-slate-200 placeholder-slate-600 text-sm transition-all"
-                  />
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 font-sans">
+                    {t('Full Name')}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                      <UserIcon className="h-5 w-5" />
+                    </span>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={t('E.g., Jack Pierce')}
+                      className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 text-slate-200 placeholder-slate-600 text-sm transition-all"
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 font-sans">
+                    {t('Phone Number')}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                      <Phone className="h-5 w-5" />
+                    </span>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder={t('E.g., +216 12 345 678')}
+                      className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 text-slate-200 placeholder-slate-600 text-sm transition-all"
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div>

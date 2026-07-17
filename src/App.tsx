@@ -151,10 +151,10 @@ function AppInner() {
     triggerToast(t('Access Expired'), t('You have successfully logged out of the parlor portal.'), 'system');
   };
 
-  const handleRegister = async (name: string, email: string, password: string, role: 'client' | 'admin') => {
+  const handleRegister = async (name: string, email: string, phone: string, password: string, role: 'client' | 'admin') => {
     const newUser: User = {
       id: 'u_' + Math.floor(Math.random() * 100000),
-      name, email, role: role || 'client',
+      name, email, phone: phone || '', role: role || 'client',
       loyaltyPoints: role === 'client' ? 25 : 0,
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
       password

@@ -28,11 +28,11 @@ function applyTheme(theme: Theme) {
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem(THEME_KEY) as Theme | null;
-    return saved === 'light' ? 'light' : 'dark';
+    return saved === 'dark' ? 'dark' : 'light';
   });
   const [lang, setLangState] = useState<Lang>(() => {
     const saved = localStorage.getItem(LANG_KEY) as Lang | null;
-    return saved === 'fr' ? 'fr' : 'en';
+    return saved === 'en' ? 'en' : 'fr';
   });
 
   useEffect(() => {
@@ -83,6 +83,8 @@ const FR: Record<string, string> = {
   'Email Address': "Adresse e-mail",
   'name@example.com': 'nom@exemple.com',
   'Password': 'Mot de passe',
+  'Phone Number': 'Numéro de téléphone',
+  'E.g., +216 12 345 678': 'Ex. +216 12 345 678',
   'Forgot password?': 'Mot de passe oublié ?',
   'Log Into Portal': 'Se connecter au portail',
   'Create Account': 'Créer un compte',
