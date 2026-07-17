@@ -14,7 +14,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   ).bind(
     p.title, p.description || '', p.image || '', p.discount || '',
     p.startDate, p.endDate, p.bookingLimit || 0, p.bookingsCount || 0,
-    p.active === false ? 0 : 1, id
+    p.active ? 1 : 0, id
   ).run();
   return jsonResponse(p);
 };

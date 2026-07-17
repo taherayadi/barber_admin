@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Scissors, Info } from 'lucide-react';
 
 import { User, Appointment, Barber, Review, Notification, ServiceItem, ServiceCategory, Promotion } from './types';
@@ -46,6 +46,7 @@ function AppInner() {
   const [loading, setLoading] = useState(true);
 
   const [activeToast, setActiveToast] = useState<NotificationToast | null>(null);
+  const promoUpdatePending = useRef(false);
 
   useEffect(() => {
     const init = async () => {
@@ -111,7 +112,7 @@ function AppInner() {
         setBarbers(b);
         setServices(s);
         setCategories(c);
-        setPromotions(p);
+        if (!promoUpdatePending.current) setPromotions(p);
         // Keep the logged-in user's live data (e.g. loyalty points) in sync
         const fresh = u.find((usr: User) => usr.id === currentUser.id);
         if (fresh) setCurrentUser((prev: User | null) => prev ? { ...prev, ...fresh, password: undefined } : prev);
@@ -376,9 +377,32 @@ function AppInner() {
   };
 
   const handleUpdatePromotion = async (updated: Promotion) => {
-    await api.updatePromotion(updated);
+    // Optimistic update first so the UI reflects the change immediately
     setPromotions(prev => prev.map(p => p.id === updated.id ? updated : p));
+    promoUpdatePending.current = true;
+    try {
+      const saved = await api.updatePromotion(updated);
+      setPromotions(prev => prev.map(p => p.id === updated.id ? saved : p));
+    } catch {
+      // revert on failure
+      setPromotions(prev => prev.map(p => p.id === updated.id ? { ...p } : p));
+    } finally {
+      // allow the next poll (after the in-flight one) to refresh
+      setTimeout(() => { promoUpdatePending.current = false; }, 6000);
+    }
     triggerToast(t('Promo Updated'), t('Campaign "{updatedTitle}" was saved.', { updatedTitle: updated.title }), 'system');
+  };
+
+  const handleUsePromotion = async (promoId: string) => {
+    const target = promotions.find(p => p.id === promoId);
+    if (!target) return;
+    const incremented: Promotion = { ...target, bookingsCount: (target.bookingsCount || 0) + 1 };
+    setPromotions(prev => prev.map(p => p.id === promoId ? incremented : p));
+    promoUpdatePending.current = true;
+    try {
+      await api.updatePromotion(incremented);
+    } catch { /* ignore */ }
+    setTimeout(() => { promoUpdatePending.current = false; }, 6000);
   };
 
   if (loading) {
@@ -448,6 +472,7 @@ function AppInner() {
           categories={categories}
           pointValue={pointValue}
           promotions={promotions}
+          onUsePromotion={handleUsePromotion}
         />
       )}
     </div>
