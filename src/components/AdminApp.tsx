@@ -360,7 +360,7 @@ export default function AdminApp({
         endDate: end,
         bookingLimit: parseInt(promoLimit) || 100,
         bookingsCount: existing?.bookingsCount || 0,
-        active: existing?.active !== false
+        active: !!existing?.active
       });
       resetPromoForm();
       return;
@@ -1784,7 +1784,7 @@ export default function AdminApp({
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {promotions.map(p => {
-                    const isActive = p.active !== false;
+                    const isActive = !!p.active;
                     return (
                     <div key={p.id} className={`p-6 rounded-3xl bg-[#090d16] border flex flex-col justify-between group relative ${isActive ? 'border-slate-850' : 'border-slate-850/50 opacity-70'}`}>
 

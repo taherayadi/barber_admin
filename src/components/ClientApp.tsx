@@ -103,7 +103,7 @@ export default function ClientApp({
   const [redeemPointsAsDiscount, setRedeemPointsAsDiscount] = useState<boolean>(false);
 
   const visiblePromotions = useMemo(
-    () => promotions.filter(p => p.active !== false),
+    () => promotions.filter(p => !!p.active),
     [promotions]
   );
 
