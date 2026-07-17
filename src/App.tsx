@@ -193,6 +193,15 @@ function AppInner() {
 
   const handleClientCancelAppointment = async (id: string) => {
     const target = appointments.find(a => a.id === id);
+    if (target && target.status !== 'completed' && target.status !== 'cancelled' && target.pointsRedeemed > 0) {
+      const client = allUsers.find(u => u.id === target.clientId);
+      if (client) {
+        const refunded = { ...client, loyaltyPoints: client.loyaltyPoints + target.pointsRedeemed };
+        await api.updateUser(refunded);
+        setAllUsers(prev => prev.map(u => u.id === refunded.id ? refunded : u));
+        if (currentUser && currentUser.id === refunded.id) setCurrentUser(refunded);
+      }
+    }
     await api.deleteAppointment(id);
     setAppointments(prev => prev.filter(a => a.id !== id));
     if (target) {
@@ -282,9 +291,21 @@ function AppInner() {
   const handleCancelAppointment = async (id: string) => {
     const app = appointments.find(a => a.id === id);
     if (!app) return;
+    const wasCompleted = app.status === 'completed';
+    const wasCancelled = app.status === 'cancelled';
     const updatedApp = { ...app, status: 'cancelled' as const };
     await api.updateAppointment(updatedApp);
     setAppointments(prev => prev.map(a => a.id === id ? updatedApp : a));
+
+    if (!wasCompleted && !wasCancelled && app.pointsRedeemed > 0) {
+      const client = allUsers.find(u => u.id === app.clientId);
+      if (client) {
+        const refunded = { ...client, loyaltyPoints: client.loyaltyPoints + app.pointsRedeemed };
+        await api.updateUser(refunded);
+        setAllUsers(prev => prev.map(u => u.id === refunded.id ? refunded : u));
+        if (currentUser && currentUser.id === refunded.id) setCurrentUser(refunded);
+      }
+    }
 
     const newNotif: Notification = {
       id: 'notif_' + Math.floor(Math.random() * 100000),
