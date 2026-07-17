@@ -27,7 +27,7 @@ import {
   MessageSquare,
   Sparkles
 } from 'lucide-react';
-import { useT } from '../i18n';
+import { useT, useSettings } from '../i18n';
 import { User, Barber, ServiceItem, Appointment, Review, Notification, ServiceCategory, Promotion } from '../types';
 import { formatPrice } from '../utils/format';
 import SettingsToggle from './SettingsToggle';
@@ -71,6 +71,7 @@ export default function ClientApp({
   onUsePromotion = () => {}
 }: ClientAppProps) {
   const t = useT();
+  const { lang } = useSettings();
   const [activeTab, setActiveTab] = useState<'home' | 'book' | 'history' | 'notifications'>('home');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   
@@ -289,7 +290,9 @@ export default function ClientApp({
 
   const formatDateLabel = (dateStr: string) => {
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', weekday: 'short' };
-    return new Date(dateStr).toLocaleDateString('en-US', options);
+    const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(locale, options);
   };
 
   return (
@@ -1153,7 +1156,7 @@ export default function ClientApp({
                             {notif.title}
                           </h4>
                           <span className="text-[9px] text-slate-500 font-mono">
-                            {new Date(notif.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(notif.date).toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                         <p className="text-xs text-slate-400 mt-1 leading-relaxed">
