@@ -30,6 +30,7 @@ import {
 import { useT } from '../i18n';
 import { User, Barber, ServiceItem, Appointment, Review, Notification, ServiceCategory, Promotion } from '../types';
 import { formatPrice } from '../utils/format';
+import SettingsToggle from './SettingsToggle';
 import { SERVICES } from '../data';
 
 interface ClientAppProps {
@@ -294,7 +295,9 @@ export default function ClientApp({
               </span>
             )}
           </button>
-          
+
+          <SettingsToggle />
+
           {/* Logout Button */}
           <button
             onClick={onLogout}

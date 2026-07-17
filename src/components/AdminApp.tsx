@@ -24,6 +24,7 @@ import {
 import { User, Appointment, Barber, Review, ServiceItem, ServiceCategory, Promotion } from '../types';
 import { useT } from '../i18n';
 import { formatPrice } from '../utils/format';
+import SettingsToggle from './SettingsToggle';
 
 interface AdminAppProps {
   currentUser: User;
@@ -478,13 +479,13 @@ export default function AdminApp({
                    {t('1 Point =')} <strong className="text-amber-500">{formatPrice(pointValue)}</strong>
                 </span>
               <div className="flex items-center gap-1.5 ml-2 border-l border-slate-850 pl-2">
-                <button 
+                <button
                   onClick={() => onUpdatePointValue(Math.max(0.01, pointValue - 0.01))}
                   className="px-1 text-slate-400 hover:text-white bg-slate-900 border-none rounded hover:bg-slate-800 cursor-pointer"
                 >
                   -
                 </button>
-                <button 
+                <button
                   onClick={() => onUpdatePointValue(pointValue + 0.01)}
                   className="px-1 text-slate-400 hover:text-white bg-slate-900 border-none rounded hover:bg-slate-800 cursor-pointer"
                 >
@@ -492,6 +493,7 @@ export default function AdminApp({
                 </button>
               </div>
             </div>
+            <SettingsToggle />
           </div>
         </header>
 

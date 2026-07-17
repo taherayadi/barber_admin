@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Scissors, Info, Sun, Moon, Languages } from 'lucide-react';
+import { Scissors, Info } from 'lucide-react';
 
 import { User, Appointment, Barber, Review, Notification, ServiceItem, ServiceCategory, Promotion } from './types';
 import * as api from './api';
-import { SettingsProvider, useSettings, useT } from './i18n';
+import { SettingsProvider, useT } from './i18n';
 
 import AuthScreen from './components/AuthScreen';
 import NotificationBanner from './components/NotificationBanner';
 import AdminApp from './components/AdminApp';
 import ClientApp from './components/ClientApp';
+import SettingsToggle from './components/SettingsToggle';
 
 interface NotificationToast {
   id: string;
@@ -28,30 +29,6 @@ function getStoredCurrentUser(): User | null {
 function saveStoredCurrentUser(user: User | null) {
   if (user) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
   else localStorage.removeItem(CURRENT_USER_KEY);
-}
-
-function SettingsToggle() {
-  const { theme, lang, toggleTheme, setLang } = useSettings();
-  const t = useT();
-  return (
-    <div className="fixed top-3 right-3 z-50 flex items-center gap-1.5 bg-slate-950/70 backdrop-blur border border-slate-800 rounded-full p-1 shadow-lg">
-      <button
-        onClick={toggleTheme}
-        title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-        className="h-8 w-8 rounded-full flex items-center justify-center text-amber-500 hover:bg-slate-800 transition-colors cursor-pointer border-none bg-transparent"
-      >
-        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-      </button>
-      <button
-        onClick={() => setLang(lang === 'en' ? 'fr' : 'en')}
-        title="Language"
-        className="h-8 px-2.5 rounded-full flex items-center gap-1 text-xs font-bold text-amber-500 hover:bg-slate-800 transition-colors cursor-pointer border-none bg-transparent"
-      >
-        <Languages className="h-4 w-4" />
-        {lang === 'en' ? 'EN' : 'FR'}
-      </button>
-    </div>
-  );
 }
 
 function AppInner() {
@@ -377,7 +354,7 @@ function AppInner() {
 
   return (
     <div className="bg-[#07090f] text-slate-100 min-h-screen relative font-sans">
-      <SettingsToggle />
+      {!currentUser && <SettingsToggle />}
       <NotificationBanner toast={activeToast} onClose={() => setActiveToast(null)} />
 
       {!currentUser ? (

@@ -5,38 +5,16 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Scissors, Mail, Lock, User as UserIcon, LogIn, ArrowRight, Sun, Moon, Languages } from 'lucide-react';
+import { Scissors, Mail, Lock, User as UserIcon, LogIn, ArrowRight } from 'lucide-react';
 import { User } from '../types';
-import { useT, useSettings } from '../i18n';
+import { useT } from '../i18n';
 import * as api from '../api';
+import SettingsToggle from './SettingsToggle';
 
 interface AuthScreenProps {
   onLogin: (user: User) => void;
   allUsers: User[];
   onRegister: (name: string, email: string, password: string, role: 'client' | 'admin') => void;
-}
-
-function AuthSettingsToggle() {
-  const { theme, lang, toggleTheme, setLang } = useSettings();
-  return (
-    <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-slate-950/70 backdrop-blur border border-slate-800 rounded-full p-1 shadow-lg">
-      <button
-        onClick={toggleTheme}
-        title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-        className="h-8 w-8 rounded-full flex items-center justify-center text-amber-500 hover:bg-slate-800 transition-colors cursor-pointer border-none bg-transparent"
-      >
-        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-      </button>
-      <button
-        onClick={() => setLang(lang === 'en' ? 'fr' : 'en')}
-        title="Language"
-        className="h-8 px-2.5 rounded-full flex items-center gap-1 text-xs font-bold text-amber-500 hover:bg-slate-800 transition-colors cursor-pointer border-none bg-transparent"
-      >
-        <Languages className="h-4 w-4" />
-        {lang === 'en' ? 'EN' : 'FR'}
-      </button>
-    </div>
-  );
 }
 
 export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreenProps) {
@@ -95,7 +73,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <AuthSettingsToggle />
+      <SettingsToggle className="absolute top-3 right-3 z-20" />
       {/* Decorative background elements */}
       <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-amber-600/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-amber-800/10 blur-[120px] pointer-events-none" />
@@ -141,7 +119,7 @@ export default function AuthScreen({ onLogin, allUsers, onRegister }: AuthScreen
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-3.5 text-xs bg-red-950/40 border border-red-500/30 text-red-400 rounded-xl font-sans">
+              <div className="p-3.5 text-xs bg-red-50 border border-red-300 text-red-600 rounded-xl font-sans dark:bg-red-950/40 dark:border-red-500/30 dark:text-red-400">
                 {error}
               </div>
             )}
