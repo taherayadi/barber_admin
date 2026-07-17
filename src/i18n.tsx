@@ -321,6 +321,7 @@ const FR: Record<string, string> = {
   'Category {newCategoryName} was added.': 'La catégorie {newCategoryName} a été ajoutée.',
   'Category Removed': 'Catégorie retirée',
   'Category {targetName} was removed.': 'La catégorie {targetName} a été retirée.',
+  'Category {targetName} and its services were removed.': 'La catégorie {targetName} et ses services ont été retirés.',
   'Rate Updated': 'Taux mis à jour',
   'Exchange rate set to {val} TND per point.': 'Taux de change fixé à {val} TND par point.',
   'Promo Created': 'Promo créée',

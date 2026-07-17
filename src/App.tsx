@@ -365,7 +365,8 @@ function AppInner() {
     const target = categories.find(c => c.id === id);
     await api.deleteCategory(id);
     setCategories(prev => prev.filter(c => c.id !== id));
-    if (target) triggerToast(t('Category Removed'), t('Category {targetName} was removed.', { targetName: target.name }), 'system');
+    setServices(prev => prev.filter(s => s.category !== id));
+    if (target) triggerToast(t('Category Removed'), t('Category {targetName} and its services were removed.', { targetName: target.name }), 'system');
   };
 
   const handleUpdatePointValue = async (val: number) => {
