@@ -234,7 +234,7 @@ export default function ClientApp({
       time: selectedTime,
       service: selectedService,
       price: price,
-      status: 'pending',
+      status: 'confirmed',
       pointsEarned: pointsEarned,
       pointsRedeemed: pointsRedeemed,
       rated: false

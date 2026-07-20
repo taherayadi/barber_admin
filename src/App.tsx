@@ -183,8 +183,8 @@ function AppInner() {
     const newNotif: Notification = {
       id: 'notif_' + Math.floor(Math.random() * 100000),
       clientId: appointment.clientId,
-      title: 'Booking Received',
-      message: `Your request with ${appointment.barberName} on ${appointment.date} at ${appointment.time} has been received and is awaiting approval.`,
+      title: 'Booking Confirmed',
+      message: `Your booking with ${appointment.barberName} on ${appointment.date} at ${appointment.time} has been confirmed.`,
       date: new Date().toISOString(), read: false, type: 'booking'
     };
     await api.createNotification(newNotif);

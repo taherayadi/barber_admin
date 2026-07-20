@@ -302,6 +302,8 @@ const FR: Record<string, string> = {
   'You have successfully logged out of the parlor portal.': 'Vous vous êtes déconnecté avec succès du portail.',
   'Appointment Approved': 'Rendez-vous approuvé',
   'Approved booking for {clientName}.': 'Réservation approuvée pour {clientName}.',
+  'Booking Confirmed': 'Réservation confirmée',
+  'Your booking with {barberName} on {date} at {time} has been confirmed.': 'Votre réservation avec {barberName} le {date} à {time} a été confirmée.',
   'Service Completed': 'Service terminé',
   'Marked complete. +{pointsCredited} loyalty points awarded.': 'Marqué terminé. +{pointsCredited} points de fidélité attribués.',
   'Booking Cancelled': 'Réservation annulée',
