@@ -500,6 +500,12 @@ export default function AdminApp({
     return cat ? cat.name : id;
   };
 
+  const clientPhone = (id?: string): string => {
+    const u = id ? users.find(x => x.id === id) : undefined;
+    return u && u.phone ? u.phone : '';
+  };
+
+
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#07090f] text-slate-150 font-sans antialiased overflow-hidden">
       
@@ -906,7 +912,7 @@ export default function AdminApp({
                             <tr key={item.id} className="hover:bg-slate-900/10 transition-colors">
                               <td className="p-3 pl-5">
                                 <p className="font-bold text-slate-300">{item.clientName}</p>
-                                <p className="text-[10px] text-slate-500">{item.clientEmail}</p>
+                                <p className="text-[10px] text-slate-500 font-mono">{clientPhone(item.clientId) || item.clientEmail}</p>
                               </td>
                               <td className="p-3 font-semibold text-slate-300">
                                 {item.barberName}
@@ -1002,6 +1008,7 @@ export default function AdminApp({
                         <div key={a.id} className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl flex justify-between items-center gap-4">
                           <div>
                             <p className="text-xs font-bold text-slate-200 leading-none">{a.clientName}</p>
+                             <p className="text-[10px] text-slate-500 font-mono mt-0.5">{clientPhone(a.clientId) || a.clientEmail}</p>
                              <p className="text-[10px] text-amber-500 mt-1">{a.service.name} • {formatPrice(a.service.price)}</p>
                             <p className="text-[10px] text-slate-500 mt-0.5">{t('With')} {a.barberName} {t('on')} {a.date} {t('at')} {a.time}</p>
                           </div>
@@ -1116,7 +1123,7 @@ export default function AdminApp({
                           <tr key={a.id} className="hover:bg-slate-900/20 transition-colors">
                             <td className="p-4 pl-6">
                               <p className="font-bold text-slate-200 font-sans">{a.clientName}</p>
-                              <p className="text-[10px] text-slate-500 mt-0.5">{a.clientEmail}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5 font-mono">{clientPhone(a.clientId) || a.clientEmail}</p>
                             </td>
                             <td className="p-4">
                               <p className="font-semibold text-amber-500">{a.service.name}</p>
@@ -1651,8 +1658,8 @@ export default function AdminApp({
                             {c.name.charAt(0)}
                           </div>
                           <div>
-                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{c.name}</h4>
-                            <p className="text-[10px] text-slate-500 font-mono">{c.email}</p>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{c.name}</h4>
+                        <p className="text-[10px] text-slate-500 font-mono">{c.phone || c.email}</p>
                           </div>
                         </div>
 
