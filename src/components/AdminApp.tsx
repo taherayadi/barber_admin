@@ -1392,7 +1392,7 @@ export default function AdminApp({
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
                       >
                         {categories.map(c => (
-                          <option key={c.id} value={c.name}>{c.name}</option>
+                          <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </div>

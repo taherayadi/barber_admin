@@ -85,8 +85,10 @@ export default function ClientApp({
   // Filtered Services List based on category partition
   const filteredServices = useMemo(() => {
     if (categoryFilter === 'all') return services;
-    return services.filter(s => s.category === categoryFilter);
-  }, [services, categoryFilter]);
+    const cat = categories.find(c => c.id === categoryFilter);
+    const catName = cat ? cat.name : categoryFilter;
+    return services.filter(s => s.category === categoryFilter || s.category === catName);
+  }, [services, categoryFilter, categories]);
   
   // Review state
   const [reviewModalBarber, setReviewModalBarber] = useState<Barber | null>(null);
@@ -665,70 +667,115 @@ export default function ClientApp({
                    <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
                      {t('1. Select Operation')}
                    </label>
-                   <div className="space-y-4">
-                    {categories.map((cat) => {
-                      const catServices = services.filter(s => s.category === cat.id || s.category === cat.name);
-                      return (
-                        <div key={cat.id} className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${cat.bgClass || 'bg-amber-500'}`} />
-                            <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{cat.name}</h5>
-                          </div>
-                          {catServices.length === 0 ? (
-                            <p className="text-[10px] text-slate-600 italic py-1">{t('No operations listed in this category yet.')}</p>
-                          ) : (
-                            catServices.map((s) => (
-                              <div
-                                key={s.id}
-                                onClick={() => {
-                                  setSelectedService(s);
-                                  // Reset points check if they change service
-                                  setRedeemWithPoints(false);
-                                }}
-                                className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${
-                                  selectedService?.id === s.id
-                                    ? 'bg-amber-500/10 border-amber-500/60'
-                                    : 'bg-slate-950/40 border-slate-850 hover:border-slate-800'
-                                }`}
-                              >
-                                <div className="flex-1 pr-3">
-                                  <h4 className="text-xs font-bold text-slate-200">{s.name}</h4>
-                                   <span className="text-[10px] text-slate-500">{s.duration} {t('min duration')}</span>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <span className="text-xs font-black text-amber-500 block">{formatPrice(s.price)}</span>
-                                    <span className="text-[9px] text-slate-500 font-mono">{t('Redeem with')} {getServicePointsCost(s)} {t('PTS')}</span>
-                                  <span className="text-[8px] text-slate-500/80 font-mono block">Valued: {formatPrice(getServicePointsCost(s) * pointValue)}</span>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      );
-                    })}
-                    {services.filter(s => !categories.some(c => c.id === s.category || c.name === s.category)).map((s) => (
-                      <div
-                        key={s.id}
-                        onClick={() => {
-                          setSelectedService(s);
-                          setRedeemWithPoints(false);
-                        }}
-                        className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${
-                          selectedService?.id === s.id
-                            ? 'bg-amber-500/10 border-amber-500/60'
-                            : 'bg-slate-950/40 border-slate-850 hover:border-slate-800'
-                        }`}
-                      >
-                        <div className="flex-1 pr-3">
-                          <h4 className="text-xs font-bold text-slate-200">{s.name}</h4>
-                           <span className="text-[10px] text-slate-500">{s.duration} {t('min duration')}</span>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-amber-500 block">{formatPrice(s.price)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                    <div className="space-y-4">
+                     {categoryFilter === 'all' ? (
+                       <>
+                     {categories.map((cat) => {
+                       const catServices = services.filter(s => s.category === cat.id || s.category === cat.name);
+                       return (
+                         <div key={cat.id} className="space-y-2">
+                           <div className="flex items-center gap-2">
+                             <span className={`w-2 h-2 rounded-full ${cat.bgClass || 'bg-amber-500'}`} />
+                             <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{cat.name}</h5>
+                           </div>
+                           {catServices.length === 0 ? (
+                             <p className="text-[10px] text-slate-600 italic py-1">{t('No operations listed in this category yet.')}</p>
+                           ) : (
+                             catServices.map((s) => (
+                               <div
+                                 key={s.id}
+                                 onClick={() => {
+                                   setSelectedService(s);
+                                   // Reset points check if they change service
+                                   setRedeemWithPoints(false);
+                                 }}
+                                 className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${
+                                   selectedService?.id === s.id
+                                     ? 'bg-amber-500/10 border-amber-500/60'
+                                     : 'bg-slate-950/40 border-slate-850 hover:border-slate-800'
+                                 }`}
+                               >
+                                 <div className="flex-1 pr-3">
+                                   <h4 className="text-xs font-bold text-slate-200">{s.name}</h4>
+                                    <span className="text-[10px] text-slate-500">{s.duration} {t('min duration')}</span>
+                                 </div>
+                                 <div className="text-right shrink-0">
+                                   <span className="text-xs font-black text-amber-500 block">{formatPrice(s.price)}</span>
+                                     <span className="text-[9px] text-slate-500 font-mono">{t('Redeem with')} {getServicePointsCost(s)} {t('PTS')}</span>
+                                   <span className="text-[8px] text-slate-500/80 font-mono block">Valued: {formatPrice(getServicePointsCost(s) * pointValue)}</span>
+                                 </div>
+                               </div>
+                             ))
+                           )}
+                         </div>
+                       );
+                     })}
+                     {services.filter(s => !categories.some(c => c.id === s.category || c.name === s.category)).map((s) => (
+                       <div
+                         key={s.id}
+                         onClick={() => {
+                           setSelectedService(s);
+                           setRedeemWithPoints(false);
+                         }}
+                         className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${
+                           selectedService?.id === s.id
+                             ? 'bg-amber-500/10 border-amber-500/60'
+                             : 'bg-slate-950/40 border-slate-850 hover:border-slate-800'
+                         }`}
+                       >
+                         <div className="flex-1 pr-3">
+                           <h4 className="text-xs font-bold text-slate-200">{s.name}</h4>
+                            <span className="text-[10px] text-slate-500">{s.duration} {t('min duration')}</span>
+                         </div>
+                         <div className="text-right shrink-0">
+                           <span className="text-xs font-black text-amber-500 block">{formatPrice(s.price)}</span>
+                         </div>
+                       </div>
+                     ))}
+                       </>
+                     ) : (
+                       (() => {
+                         const cat = categories.find(c => c.id === categoryFilter);
+                         const catServices = services.filter(s => s.category === categoryFilter || s.category === (cat ? cat.name : ''));
+                         return (
+                           <div className="space-y-2">
+                             <div className="flex items-center gap-2">
+                               <span className={`w-2 h-2 rounded-full ${cat?.bgClass || 'bg-amber-500'}`} />
+                               <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{cat ? cat.name : t('Category')}</h5>
+                             </div>
+                             {catServices.length === 0 ? (
+                               <p className="text-[10px] text-slate-600 italic py-1">{t('No operations listed in this category yet.')}</p>
+                             ) : (
+                               catServices.map((s) => (
+                                 <div
+                                   key={s.id}
+                                   onClick={() => {
+                                     setSelectedService(s);
+                                     setRedeemWithPoints(false);
+                                   }}
+                                   className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${
+                                     selectedService?.id === s.id
+                                       ? 'bg-amber-500/10 border-amber-500/60'
+                                       : 'bg-slate-950/40 border-slate-850 hover:border-slate-800'
+                                   }`}
+                                 >
+                                   <div className="flex-1 pr-3">
+                                     <h4 className="text-xs font-bold text-slate-200">{s.name}</h4>
+                                      <span className="text-[10px] text-slate-500">{s.duration} {t('min duration')}</span>
+                                   </div>
+                                   <div className="text-right shrink-0">
+                                     <span className="text-xs font-black text-amber-500 block">{formatPrice(s.price)}</span>
+                                     <span className="text-[9px] text-slate-500 font-mono">{t('Redeem with')} {getServicePointsCost(s)} {t('PTS')}</span>
+                                     <span className="text-[8px] text-slate-500/80 font-mono block">Valued: {formatPrice(getServicePointsCost(s) * pointValue)}</span>
+                                   </div>
+                                 </div>
+                               ))
+                             )}
+                           </div>
+                         );
+                       })()
+                     )}
+                   </div>
                 </div>
 
                 {/* 2. SELECT BARBER */}
