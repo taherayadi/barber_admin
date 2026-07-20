@@ -19,9 +19,15 @@ import {
   PlusCircle,
   TrendingUp,
   Sliders,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff,
+  Pencil
 } from 'lucide-react';
 import { User, Appointment, Barber, Review, ServiceItem, ServiceCategory, Promotion } from '../types';
+import { useT } from '../i18n';
+import { formatPrice } from '../utils/format';
+import SettingsToggle from './SettingsToggle';
 
 interface AdminAppProps {
   currentUser: User;
@@ -40,6 +46,7 @@ interface AdminAppProps {
   services: ServiceItem[];
   onAddService: (newService: ServiceItem) => void;
   onRemoveService: (id: string) => void;
+  onUpdateService: (updated: ServiceItem) => void;
   categories: ServiceCategory[];
   onAddCategory: (newCategory: ServiceCategory) => void;
   onRemoveCategory: (id: string) => void;
@@ -48,6 +55,7 @@ interface AdminAppProps {
   promotions: Promotion[];
   onAddPromotion: (newPromo: Promotion) => void;
   onRemovePromotion: (id: string) => void;
+  onUpdatePromotion: (updated: Promotion) => void;
 }
 
 export default function AdminApp({
@@ -67,6 +75,7 @@ export default function AdminApp({
   services,
   onAddService,
   onRemoveService,
+  onUpdateService,
   categories,
   onAddCategory,
   onRemoveCategory,
@@ -74,14 +83,25 @@ export default function AdminApp({
   onUpdatePointValue,
   promotions,
   onAddPromotion,
-  onRemovePromotion
+  onRemovePromotion,
+  onUpdatePromotion
+
 }: AdminAppProps) {
+  const t = useT();
   // Navigation
   const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'barbers' | 'services' | 'customers' | 'promotions'>('dashboard');
 
   // Filter/Search States
   const [appFilter, setAppFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
+  const [appPeriodFilter, setAppPeriodFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'month'>('all');
   const [customerSearch, setCustomerSearch] = useState('');
+
+  // Closed Sales Ledger States
+  const [salesBarberFilter, setSalesBarberFilter] = useState<string>('all');
+  const [salesCategoryFilter, setSalesCategoryFilter] = useState<string>('all');
+  const [salesPeriodFilter, setSalesPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [salesSearchQuery, setSalesSearchQuery] = useState<string>('');
+  const [salesSortOrder, setSalesSortOrder] = useState<'newest' | 'oldest' | 'price-desc' | 'price-asc'>('newest');
 
   // Service Config State
   const [newServiceName, setNewServiceName] = useState('');
@@ -89,15 +109,25 @@ export default function AdminApp({
   const [newServiceDuration, setNewServiceDuration] = useState('');
   const [newServiceCategory, setNewServiceCategory] = useState(categories[0]?.id || '');
   const [newServicePoints, setNewServicePoints] = useState('15');
-  const [newServicePointsCost, setNewServicePointsCost] = useState('150');
   const [newServiceDesc, setNewServiceDesc] = useState('');
+  const [newServiceBarbers, setNewServiceBarbers] = useState<string[]>(barbers.map(b => b.id));
+  const [editingService, setEditingService] = useState<ServiceItem | null>(null);
 
   // Barber Config State
   const [newBarberName, setNewBarberName] = useState('');
   const [newBarberSpecialty, setNewBarberSpecialty] = useState('');
   const [newBarberBio, setNewBarberBio] = useState('');
   const [newBarberAvatar, setNewBarberAvatar] = useState('');
-  const [newBarberTimes, setNewBarberTimes] = useState<string[]>(['09:00 AM', '10:00 AM', '11:00 AM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM']);
+  const defaultBarberTimes = (): string[] => {
+    const slots: string[] = [];
+    for (let h = 8; h < 20; h++) {
+      for (const m of [0, 30]) {
+        slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      }
+    }
+    return slots; // 08:00 to 19:30, every 30 min
+  };
+  const [newBarberTimes, setNewBarberTimes] = useState<string[]>(defaultBarberTimes());
 
   // Custom Push Alert Modal / Form States
   const [selectedClientForNotif, setSelectedClientForNotif] = useState<string | null>(null);
@@ -113,6 +143,9 @@ export default function AdminApp({
   const [promoDesc, setPromoDesc] = useState('');
   const [promoDiscount, setPromoDiscount] = useState('20%');
   const [promoLimit, setPromoLimit] = useState('100');
+  const [promoStart, setPromoStart] = useState('');
+  const [promoEnd, setPromoEnd] = useState('');
+  const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
 
   // Category Form State
   const [newCatName, setNewCatName] = useState('');
@@ -134,27 +167,161 @@ export default function AdminApp({
     return { total, revenue, activeClients, pending, avgRating };
   }, [appointments, users, reviews]);
 
-  // Handle Form Submissions
-  const handleCreateService = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newServiceName || !newServicePrice || !newServiceDuration) return;
+  // Auto-computed barber rating & review count from actual reviews
+  const barberStats = useMemo(() => {
+    const map: Record<string, { rating: number; count: number }> = {};
+    for (const r of reviews) {
+      if (!r.barberId) continue;
+      if (!map[r.barberId]) map[r.barberId] = { rating: 0, count: 0 };
+      map[r.barberId].rating += r.rating;
+      map[r.barberId].count += 1;
+    }
+    for (const id in map) {
+      map[id].rating = map[id].count > 0 ? map[id].rating / map[id].count : 0;
+    }
+    return map;
+  }, [reviews]);
 
-    onAddService({
-      id: 's_' + Math.floor(Math.random() * 100000),
-      name: newServiceName,
-      price: parseFloat(newServicePrice),
-      duration: parseInt(newServiceDuration),
-      pointsGiven: parseInt(newServicePoints) || 15,
-      pointsCost: parseInt(newServicePointsCost) || 150,
-      description: newServiceDesc,
-      category: newServiceCategory || categories[0]?.id || 'Haircuts'
+  const getBarberRating = (b: Barber): number => {
+    const s = barberStats[b.id];
+    return s && s.count > 0 ? s.rating : (b.rating || 0);
+  };
+  const getBarberReviewCount = (b: Barber): number => {
+    const s = barberStats[b.id];
+    return s ? s.count : (b.reviewsCount || 0);
+  };
+
+  // Computed Completed Sales list and stats for the new interactive sales panel
+  const { filteredSalesList, filteredSalesRevenue, avgTicketValue, topPerformingBarber } = useMemo(() => {
+    let list = appointments.filter(a => a.status === 'completed');
+
+    if (salesBarberFilter !== 'all') {
+      list = list.filter(a => a.barberName === salesBarberFilter);
+    }
+
+    if (salesCategoryFilter !== 'all') {
+      list = list.filter(a => a.service.category === salesCategoryFilter);
+    }
+
+    if (salesPeriodFilter !== 'all') {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - 6);
+      const startOfMonth = new Date(now);
+      startOfMonth.setDate(now.getDate() - 29);
+      const toDayNum = (s: string) => {
+        const [y, m, d] = s.split('-').map(Number);
+        return new Date(y, m - 1, d).getTime();
+      };
+      list = list.filter(a => {
+        if (!a.date) return false;
+        const itemTime = toDayNum(a.date);
+        if (salesPeriodFilter === 'today') {
+          return a.date === todayStr;
+        } else if (salesPeriodFilter === 'week') {
+          return itemTime >= toDayNum(`${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}`);
+        } else if (salesPeriodFilter === 'month') {
+          return itemTime >= toDayNum(`${startOfMonth.getFullYear()}-${String(startOfMonth.getMonth() + 1).padStart(2, '0')}-${String(startOfMonth.getDate()).padStart(2, '0')}`);
+        }
+        return true;
+      });
+    }
+
+    if (salesSearchQuery.trim()) {
+      const q = salesSearchQuery.toLowerCase();
+      list = list.filter(a => 
+        a.clientName.toLowerCase().includes(q) || 
+        a.clientEmail.toLowerCase().includes(q)
+      );
+    }
+
+    list = [...list].sort((a, b) => {
+      if (salesSortOrder === 'newest') {
+        return b.date.localeCompare(a.date) || b.time.localeCompare(a.time);
+      } else if (salesSortOrder === 'oldest') {
+        return a.date.localeCompare(b.date) || a.time.localeCompare(b.time);
+      } else if (salesSortOrder === 'price-desc') {
+        return b.price - a.price;
+      } else if (salesSortOrder === 'price-asc') {
+        return a.price - b.price;
+      }
+      return 0;
     });
 
+    const revenue = list.reduce((sum, a) => sum + a.price, 0);
+    const avgTicket = list.length > 0 ? revenue / list.length : 0;
+
+    const barberCounts: Record<string, number> = {};
+    list.forEach(a => {
+      barberCounts[a.barberName] = (barberCounts[a.barberName] || 0) + a.price;
+    });
+
+    let topBarber = t('None');
+    let maxSales = -1;
+    Object.entries(barberCounts).forEach(([name, sales]) => {
+      if (sales > maxSales) {
+        maxSales = sales;
+        topBarber = `${name} (${formatPrice(sales)})`;
+      }
+    });
+
+    return {
+      filteredSalesList: list,
+      filteredSalesRevenue: revenue,
+      avgTicketValue: avgTicket,
+      topPerformingBarber: topBarber
+    };
+  }, [appointments, salesBarberFilter, salesCategoryFilter, salesPeriodFilter, salesSearchQuery, salesSortOrder]);
+
+  // Handle Form Submissions
+  const startEditService = (s: ServiceItem) => {
+    setEditingService(s);
+    setNewServiceName(s.name);
+    setNewServicePrice(String(s.price));
+    setNewServiceDuration(String(s.duration));
+    setNewServiceCategory(s.category);
+    setNewServicePoints(String(s.pointsGiven || 15));
+    setNewServiceDesc(s.description || '');
+    setNewServiceBarbers(s.barbersAllowed && s.barbersAllowed.length > 0 ? s.barbersAllowed : barbers.map(b => b.id));
+  };
+
+  const cancelEditService = () => {
+    setEditingService(null);
     setNewServiceName('');
     setNewServicePrice('');
     setNewServiceDuration('');
     setNewServiceDesc('');
+    setNewServiceBarbers(barbers.map(b => b.id));
   };
+
+  const handleCreateService = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newServiceName || !newServicePrice || !newServiceDuration) return;
+
+    const price = parseFloat(newServicePrice);
+    const computedPointsCost = pointValue > 0 ? Math.ceil(price / pointValue) : 150;
+    const serviceData: ServiceItem = {
+      id: editingService ? editingService.id : 's_' + Math.floor(Math.random() * 100000),
+      name: newServiceName,
+      price,
+      duration: parseInt(newServiceDuration),
+      pointsGiven: parseInt(newServicePoints) || 15,
+      pointsCost: computedPointsCost,
+      description: newServiceDesc,
+      category: newServiceCategory || categories[0]?.id || 'Haircuts',
+      barbersAllowed: newServiceBarbers
+    };
+
+    if (editingService) {
+      onUpdateService(serviceData);
+    } else {
+      onAddService(serviceData);
+    }
+
+    cancelEditService();
+  };
+
 
   const handleCreateBarber = (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,20 +344,71 @@ export default function AdminApp({
     setNewBarberAvatar('');
   };
 
+  const resetPromoForm = () => {
+    setEditingPromoId(null);
+    setPromoTitle('');
+    setPromoDesc('');
+    setPromoDiscount('20%');
+    setPromoLimit('100');
+    setPromoStart('');
+    setPromoEnd('');
+  };
+
+  const loadPromoForEdit = (p: Promotion) => {
+    setEditingPromoId(p.id);
+    setPromoTitle(p.title);
+    setPromoDesc(p.description || '');
+    setPromoDiscount(p.discount);
+    setPromoLimit(String(p.bookingLimit));
+    setPromoStart(p.startDate || '');
+    setPromoEnd(p.endDate || '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const computePromoDates = (fallbackStart: string, fallbackEnd: string) => {
+    const start = promoStart || fallbackStart;
+    const end = promoEnd || fallbackEnd;
+    return { start, end };
+  };
+
   const handleCreatePromotion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoTitle || !promoDiscount) return;
 
+    const fbStart = new Date().toISOString().split('T')[0];
+    const fbEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    if (editingPromoId) {
+      const existing = promotions.find(p => p.id === editingPromoId);
+      const { start, end } = computePromoDates(existing?.startDate || fbStart, existing?.endDate || fbEnd);
+      onUpdatePromotion({
+        id: editingPromoId,
+        title: promoTitle,
+        description: promoDesc,
+        discount: promoDiscount,
+        image: existing?.image || 'https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&q=80&w=300',
+        startDate: start,
+        endDate: end,
+        bookingLimit: parseInt(promoLimit) || 100,
+        bookingsCount: existing?.bookingsCount || 0,
+        active: !!existing?.active
+      });
+      resetPromoForm();
+      return;
+    }
+
+    const { start, end } = computePromoDates(fbStart, fbEnd);
     onAddPromotion({
       id: 'p_' + Math.floor(Math.random() * 100000),
       title: promoTitle,
       description: promoDesc,
       discount: promoDiscount,
       image: 'https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&q=80&w=300',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startDate: start,
+      endDate: end,
       bookingLimit: parseInt(promoLimit) || 100,
-      bookingsCount: 0
+      bookingsCount: 0,
+      active: true
     });
 
     setPromoTitle('');
@@ -234,9 +452,41 @@ export default function AdminApp({
     setPointsDeltaValue('20');
   };
 
+  // Date helpers for the bookings queue period filter
+  const periodBounds = () => {
+    const now = new Date();
+    const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const todayStr = ymd(now);
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+    const yesterdayStr = ymd(yesterday);
+    const weekStart = new Date(now); weekStart.setDate(now.getDate() - 6);
+    const weekStartStr = ymd(weekStart);
+    const monthStart = new Date(now); monthStart.setDate(now.getDate() - 29);
+    const monthStartStr = ymd(monthStart);
+    return { todayStr, yesterdayStr, weekStartStr, monthStartStr };
+  };
+
   const filteredAppointments = appointments.filter(a => {
-    if (appFilter === 'all') return true;
-    return a.status === appFilter;
+    if (appFilter !== 'all' && a.status !== appFilter) return false;
+    if (appPeriodFilter !== 'all') {
+      const { todayStr, yesterdayStr, weekStartStr, monthStartStr } = periodBounds();
+      if (appPeriodFilter === 'today' && a.date !== todayStr) return false;
+      if (appPeriodFilter === 'yesterday' && a.date !== yesterdayStr) return false;
+      if (appPeriodFilter === 'week' && a.date < weekStartStr) return false;
+      if (appPeriodFilter === 'month' && a.date < monthStartStr) return false;
+    }
+    return true;
+  });
+
+  // Always keep actionable items on top: pending -> confirmed -> cancelled -> completed
+  const statusRank: Record<string, number> = { pending: 0, confirmed: 1, cancelled: 2, completed: 3 };
+  filteredAppointments.sort((a, b) => {
+    const ra = statusRank[a.status] ?? 9;
+    const rb = statusRank[b.status] ?? 9;
+    if (ra !== rb) return ra - rb;
+    // Within the same status: completed shows newest first, others oldest first
+    const cmp = a.date.localeCompare(b.date) || a.time.localeCompare(b.time);
+    return a.status === 'completed' ? -cmp : cmp;
   });
 
   const filteredClients = users.filter(u => {
@@ -245,11 +495,22 @@ export default function AdminApp({
            u.email.toLowerCase().includes(customerSearch.toLowerCase());
   });
 
+  const categoryName = (id: string): string => {
+    const cat = categories.find(c => c.id === id);
+    return cat ? cat.name : id;
+  };
+
+  const clientPhone = (id?: string): string => {
+    const u = id ? users.find(x => x.id === id) : undefined;
+    return u && u.phone ? u.phone : '';
+  };
+
+
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#07090f] text-slate-150 font-sans antialiased overflow-hidden">
       
       {/* 1. SIDEBAR DECK */}
-      <aside className="w-full md:w-64 bg-[#0a0d16] border-r border-slate-850 flex flex-col shrink-0">
+      <aside className="w-full md:w-72 bg-[#0a0d16] border-r border-slate-850 flex flex-col shrink-0">
         
         {/* Salon Branding Header */}
         <div className="p-6 border-b border-slate-850 flex items-center gap-3">
@@ -258,10 +519,10 @@ export default function AdminApp({
           </div>
           <div>
             <h1 className="text-sm font-black tracking-wider uppercase text-slate-100 font-sans">
-              Barberhouse
+              {t('Barberhouse')}
             </h1>
             <p className="text-[10px] text-amber-500 font-mono tracking-widest uppercase font-bold">
-              Admin Console
+              {t('Admin Console')}
             </p>
           </div>
         </div>
@@ -270,19 +531,19 @@ export default function AdminApp({
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'dashboard'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
             }`}
           >
             <TrendingUp className="h-4.5 w-4.5 text-amber-500" />
-            Performance Desk
+            {t('Performance Desk')}
           </button>
 
           <button
             onClick={() => setActiveTab('appointments')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'appointments'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
@@ -290,10 +551,10 @@ export default function AdminApp({
           >
             <span className="flex items-center gap-3">
               <Calendar className="h-4.5 w-4.5 text-amber-500" />
-              Bookings Queue
+              {t('Bookings Queue')}
             </span>
             {metrics.pending > 0 && (
-              <span className="h-5 px-1.5 min-w-[20px] rounded-full bg-red-500 text-white font-mono text-[10px] flex items-center justify-center font-bold">
+              <span className="h-5 px-1.5 min-w-[20px] rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-mono text-[10px] flex items-center justify-center font-bold">
                 {metrics.pending}
               </span>
             )}
@@ -301,50 +562,50 @@ export default function AdminApp({
 
           <button
             onClick={() => setActiveTab('barbers')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'barbers'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
             }`}
           >
             <Scissors className="h-4.5 w-4.5 text-amber-500" />
-            Staff Roster
+            {t('Staff Roster')}
           </button>
 
           <button
             onClick={() => setActiveTab('services')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'services'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
             }`}
           >
             <Sliders className="h-4.5 w-4.5 text-amber-500" />
-            Service Directory
+            {t('Service Directory')}
           </button>
 
           <button
             onClick={() => setActiveTab('customers')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'customers'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
             }`}
           >
             <Users className="h-4.5 w-4.5 text-amber-500" />
-            Customer Registry
+            {t('Customer Registry')}
           </button>
 
           <button
             onClick={() => setActiveTab('promotions')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap ${
               activeTab === 'promotions'
                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 bg-transparent'
             }`}
           >
             <Percent className="h-4.5 w-4.5 text-amber-500" />
-            Promotional Desk
+            {t('Promotional Desk')}
           </button>
         </nav>
 
@@ -356,7 +617,7 @@ export default function AdminApp({
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-200 font-sans leading-none">{currentUser.name}</p>
-              <p className="text-[10px] text-amber-500/90 font-mono mt-0.5 leading-none font-bold">Salon Executive</p>
+              <p className="text-[10px] text-amber-500/90 font-mono mt-0.5 leading-none font-bold">{t('Salon Executive')}</p>
             </div>
           </div>
           <button
@@ -364,7 +625,7 @@ export default function AdminApp({
             className="w-full py-2.5 rounded-xl border border-slate-850 hover:border-red-500/45 hover:bg-red-500/5 text-slate-400 hover:text-red-400 text-xs font-semibold uppercase tracking-wide transition-all bg-transparent cursor-pointer flex items-center justify-center gap-2"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Terminal Logout
+            {t('Terminal Logout')}
           </button>
         </div>
       </aside>
@@ -375,9 +636,9 @@ export default function AdminApp({
         {/* Top Header info */}
         <header className="h-16 border-b border-slate-850 px-8 flex items-center justify-between bg-[#0a0d16]/30 backdrop-blur shrink-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-200 font-sans">
-              {activeTab} Portal
-            </h2>
+             <h2 className="text-sm font-black uppercase tracking-widest text-slate-200 font-sans">
+               {t(activeTab + ' Portal')}
+             </h2>
             <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
           </div>
 
@@ -385,17 +646,17 @@ export default function AdminApp({
           <div className="flex items-center gap-3">
             <div className="bg-slate-950 px-3.5 py-1.5 rounded-xl border border-slate-850 flex items-center gap-3 text-xs">
               <Award className="h-3.5 w-3.5 text-amber-500" />
-              <span className="font-mono text-[10.5px] text-slate-400">
-                1 Point = <strong className="text-amber-500">${pointValue.toFixed(2)}</strong> USD
-              </span>
+               <span className="font-mono text-[10.5px] text-slate-400">
+                   {t('1 Point =')} <strong className="text-amber-500">{formatPrice(pointValue)}</strong>
+                </span>
               <div className="flex items-center gap-1.5 ml-2 border-l border-slate-850 pl-2">
-                <button 
+                <button
                   onClick={() => onUpdatePointValue(Math.max(0.01, pointValue - 0.01))}
                   className="px-1 text-slate-400 hover:text-white bg-slate-900 border-none rounded hover:bg-slate-800 cursor-pointer"
                 >
                   -
                 </button>
-                <button 
+                <button
                   onClick={() => onUpdatePointValue(pointValue + 0.01)}
                   className="px-1 text-slate-400 hover:text-white bg-slate-900 border-none rounded hover:bg-slate-800 cursor-pointer"
                 >
@@ -403,6 +664,7 @@ export default function AdminApp({
                 </button>
               </div>
             </div>
+            <SettingsToggle />
           </div>
         </header>
 
@@ -420,15 +682,15 @@ export default function AdminApp({
                     <Sparkles className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-slate-100">Welcome to Executive Control, {currentUser.name}</h3>
+                    <h3 className="text-base font-bold text-slate-100">{t('Welcome to Executive Control,')} {currentUser.name}</h3>
                     <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                      Monitor parlor performance meters in real-time, update stylist calendars, alter prices, adjust client loyalty balances, and deploy marketing discount campaigns.
+                      {t('Monitor parlor performance meters in real-time, update stylist calendars, alter prices, adjust client loyalty balances, and deploy marketing discount campaigns.')}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 py-2 px-4 bg-slate-950 border border-slate-850 rounded-xl font-mono text-xs text-amber-500 font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block mr-1" />
-                  LIVE METRICS ACTIVE
+                  {t('LIVE METRICS ACTIVE')}
                 </div>
               </div>
 
@@ -439,11 +701,11 @@ export default function AdminApp({
                   <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-15 transition-opacity">
                     <DollarSign className="h-20 w-20 text-amber-500" />
                   </div>
-                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">Closed Sales</p>
-                  <p className="text-2xl font-black text-amber-500 mt-2 font-mono">${metrics.revenue.toFixed(2)}</p>
+                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">{t('Closed Sales')}</p>
+                   <p className="text-2xl font-black text-amber-500 mt-2 font-mono">{formatPrice(metrics.revenue)}</p>
                   <div className="mt-4 flex items-center gap-1.5 text-[10px] text-emerald-400 bg-emerald-950/25 px-2 py-1 rounded-lg w-max">
                     <TrendingUp className="h-3 w-3" />
-                    +12% this week
+                    {t('+12% this week')}
                   </div>
                 </div>
 
@@ -451,10 +713,10 @@ export default function AdminApp({
                   <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-15 transition-opacity">
                     <Calendar className="h-20 w-20 text-amber-500" />
                   </div>
-                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">All Bookings</p>
+                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">{t('All Bookings')}</p>
                   <p className="text-2xl font-black text-slate-100 mt-2 font-mono">{metrics.total}</p>
                   <div className="mt-4 text-[10px] text-slate-450">
-                    <strong className="text-slate-350">{metrics.pending} pending</strong> awaiting review
+                    <strong className="text-slate-350">{metrics.pending} {t('pending')}</strong> {t('awaiting review')}
                   </div>
                 </div>
 
@@ -462,10 +724,10 @@ export default function AdminApp({
                   <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-15 transition-opacity">
                     <Users className="h-20 w-20 text-amber-500" />
                   </div>
-                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">Client accounts</p>
+                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">{t('Client accounts')}</p>
                   <p className="text-2xl font-black text-slate-100 mt-2 font-mono">{metrics.activeClients}</p>
                   <div className="mt-4 text-[10px] text-slate-450">
-                    Unique customer profiles registered
+                    {t('Unique customer profiles registered')}
                   </div>
                 </div>
 
@@ -473,10 +735,211 @@ export default function AdminApp({
                   <div className="absolute right-3 top-3 opacity-10 group-hover:opacity-15 transition-opacity">
                     <Star className="h-20 w-20 text-amber-500" />
                   </div>
-                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">Audited Star Rating</p>
+                  <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">{t('Audited Star Rating')}</p>
                   <p className="text-2xl font-black text-amber-500 mt-2 font-mono">{metrics.avgRating} <span className="text-sm font-sans text-slate-550">/ 5.0</span></p>
                   <div className="mt-4 text-[10px] text-slate-450">
-                    Calculated from <strong className="text-slate-350">{reviews.length} written reviews</strong>
+                    {t('Calculated from')} <strong className="text-slate-350">{reviews.length} {t('written reviews')}</strong>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* COMPREHENSIVE CLOSED SALES LEDGER */}
+              <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850 space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-amber-500" />
+                      {t('Closed Sales & Revenue Analysis')}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {t('Audit completed service logs, calculate barber splits, and filter performance revenue.')}
+                    </p>
+                  </div>
+                  
+                  {/* Quick toggle indicator */}
+                  <div className="flex gap-1 bg-slate-950 p-1.5 rounded-xl border border-slate-850">
+                    <span className="text-[10px] uppercase font-mono font-bold px-2.5 py-1 text-slate-400">
+                       {t('Total Completed:')} {appointments.filter(a => a.status === 'completed').length}
+                     </span>
+                  </div>
+                </div>
+
+                {/* FILTERS DECK */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 bg-slate-950/40 p-5 rounded-2xl border border-slate-850">
+                  
+                  {/* 1. Barber Filter */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
+                      {t('Barber / Stylist')}
+                    </label>
+                    <select
+                      value={salesBarberFilter}
+                      onChange={e => setSalesBarberFilter(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
+                    >
+                      <option value="all">{t('All Barbers')}</option>
+                      {barbers.map(b => (
+                        <option key={b.id} value={b.name}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 2. Service Category Filter */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
+                      {t('Service Category')}
+                    </label>
+                    <select
+                      value={salesCategoryFilter}
+                      onChange={e => setSalesCategoryFilter(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
+                    >
+                      <option value="all">{t('All Categories')}</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 3. Time period Filter */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
+                      {t('Time Frame')}
+                    </label>
+                    <select
+                      value={salesPeriodFilter}
+                      onChange={e => setSalesPeriodFilter(e.target.value as any)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
+                    >
+                      <option value="all">{t('All Time')}</option>
+                      <option value="today">{t('Today')}</option>
+                      <option value="week">{t('This Week (Last 7 Days)')}</option>
+                      <option value="month">{t('This Month (Last 30 Days)')}</option>
+                    </select>
+                  </div>
+
+                  {/* 4. Search Client Query */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
+                      {t('Client Search')}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={t('Name or email...')}
+                      value={salesSearchQuery}
+                      onChange={e => setSalesSearchQuery(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
+                    />
+                  </div>
+
+                  {/* 5. Sorting Ledger */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block font-mono">
+                      {t('Sort Ledger By')}
+                    </label>
+                    <select
+                      value={salesSortOrder}
+                      onChange={e => setSalesSortOrder(e.target.value as any)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
+                    >
+                      <option value="newest">{t('Newest First')}</option>
+                      <option value="oldest">{t('Oldest First')}</option>
+                      <option value="price-desc">{t('Highest Revenue')}</option>
+                      <option value="price-asc">{t('Lowest Revenue')}</option>
+                    </select>
+                  </div>
+
+                </div>
+
+                {/* FILTERED KEY METRICS CARDS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-amber-500/[0.02] border border-amber-500/5 rounded-2xl">
+                  
+                  <div className="px-4 py-3 border-r border-slate-850/65 last:border-none">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Filtered Sales Revenue')}</span>
+                     <span className="text-xl font-black text-amber-500 font-mono block mt-1">
+                       {formatPrice(filteredSalesRevenue)}
+                     </span>
+                  </div>
+
+                  <div className="px-4 py-3 border-r border-slate-850/65 last:border-none">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Transaction Count')}</span>
+                    <span className="text-xl font-black text-slate-200 font-mono block mt-1">
+                      {filteredSalesList.length} <span className="text-xs text-slate-500 font-sans font-normal">{t('completed')}</span>
+                    </span>
+                  </div>
+
+                  <div className="px-4 py-3 border-r border-slate-850/65 last:border-none">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Average Ticket Value')}</span>
+                     <span className="text-xl font-black text-slate-200 font-mono block mt-1">
+                       {formatPrice(avgTicketValue)}
+                     </span>
+                  </div>
+
+                  <div className="px-4 py-3 last:border-none">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Top Performing Barber')}</span>
+                    <span className="text-sm font-black text-amber-500 block truncate mt-1">
+                      {topPerformingBarber}
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* ACTUAL SALES DATA LIST TABLE */}
+                <div className="border border-slate-850 bg-slate-950/20 rounded-2xl overflow-hidden shadow-xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-[11px]">
+                      <thead>
+                        <tr className="bg-slate-950/70 border-b border-slate-850 text-slate-450 font-mono tracking-wider uppercase">
+                          <th className="p-3 pl-5">{t('Client Profile')}</th>
+                          <th className="p-3">{t('Serviced By')}</th>
+                          <th className="p-3">{t('Service Offered')}</th>
+                          <th className="p-3">{t('Category')}</th>
+                          <th className="p-3">{t('Execution Date')}</th>
+                          <th className="p-3">{t('Point Credits')}</th>
+                          <th className="p-3 pr-5 text-right">{t('Invoice Amt')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-850/65">
+                        {filteredSalesList.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="p-10 text-center text-slate-500 italic">
+                              {t('No completed sales matches the selected filters.')}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredSalesList.map(item => (
+                            <tr key={item.id} className="hover:bg-slate-900/10 transition-colors">
+                              <td className="p-3 pl-5">
+                                <p className="font-bold text-slate-300">{item.clientName}</p>
+                                <p className="text-[10px] text-slate-500 font-mono">{clientPhone(item.clientId) || item.clientEmail}</p>
+                              </td>
+                              <td className="p-3 font-semibold text-slate-300">
+                                {item.barberName}
+                              </td>
+                              <td className="p-3">
+                                <span className="text-amber-500 font-bold">{item.service.name}</span>
+                                <span className="text-[10px] text-slate-550 font-mono ml-2">({item.service.duration} {t('mins')})</span>
+                              </td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 rounded-lg bg-slate-950 text-slate-400 border border-slate-850 text-[10px] font-mono">
+                                  {categoryName(item.service.category)}
+                                </span>
+                              </td>
+                              <td className="p-3 font-mono text-slate-400">
+                                {item.date} <span className="text-slate-600 text-[10px] ml-1">{item.time}</span>
+                              </td>
+                               <td className="p-3 font-mono text-emerald-400 font-bold">
+                                 +{item.service.pointsGiven} {t('PTS')}
+                               </td>
+                               <td className="p-3 pr-5 text-right font-mono font-black text-amber-500">
+                                 {formatPrice(item.price)}
+                               </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
@@ -489,23 +952,23 @@ export default function AdminApp({
                 <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850 flex flex-col h-[380px]">
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-4 flex items-center gap-2">
                     <Star className="h-4 w-4 text-amber-500" />
-                    Latest Audited Feedback
+                    {t('Latest Audited Feedback')}
                   </h4>
                   <div className="flex-1 overflow-y-auto space-y-3.5 pr-2">
                     {reviews.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
                         <Star className="h-8 w-8 opacity-25 mb-2" />
-                        <p className="text-xs">No client reviews filed yet in this ledger.</p>
+                        <p className="text-xs">{t('No client reviews filed yet in this ledger.')}</p>
                       </div>
                     ) : (
                       reviews.map(r => {
-                        const stylistName = barbers.find(b => b.id === r.barberId)?.name || 'Stylist';
+                        const stylistName = barbers.find(b => b.id === r.barberId)?.name || t('Stylist');
                         return (
                           <div key={r.id} className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl">
                             <div className="flex justify-between items-start gap-2">
                               <div>
                                 <p className="text-xs font-bold text-slate-250 leading-none">{r.clientName}</p>
-                                <p className="text-[10px] text-slate-500 mt-1">Serviced by: <strong className="text-amber-500">{stylistName}</strong></p>
+                                <p className="text-[10px] text-slate-500 mt-1">{t('Serviced by:')} <strong className="text-amber-500">{stylistName}</strong></p>
                               </div>
                               <div className="flex items-center gap-0.5 px-2 py-0.5 bg-amber-500/10 rounded-lg text-amber-400 font-bold text-[10px]">
                                 <span>{r.rating}</span>
@@ -528,38 +991,39 @@ export default function AdminApp({
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-4 flex items-center justify-between">
                     <span className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-amber-500" />
-                      Awaiting Approvals
+                      {t('Awaiting Approvals')}
                     </span>
                     <span className="text-[10px] bg-red-900/20 text-red-400 px-2 py-0.5 rounded-lg border border-red-500/20 font-mono">
-                      {metrics.pending} Pending
+                      {metrics.pending} {t('Pending')}
                     </span>
                   </h4>
                   <div className="flex-1 overflow-y-auto space-y-3.5 pr-2">
                     {appointments.filter(a => a.status === 'pending').length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
                         <Check className="h-8 w-8 text-emerald-500 opacity-30 mb-2 animate-pulse" />
-                        <p className="text-xs">Perfect! No pending bookings in the queue.</p>
+                        <p className="text-xs">{t('Perfect! No pending bookings in the queue.')}</p>
                       </div>
                     ) : (
                       appointments.filter(a => a.status === 'pending').map(a => (
                         <div key={a.id} className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl flex justify-between items-center gap-4">
                           <div>
                             <p className="text-xs font-bold text-slate-200 leading-none">{a.clientName}</p>
-                            <p className="text-[10px] text-amber-500 mt-1">{a.service.name} • ${a.service.price}</p>
-                            <p className="text-[10px] text-slate-500 mt-0.5">With {a.barberName} on {a.date} at {a.time}</p>
+                             <p className="text-[10px] text-slate-500 font-mono mt-0.5">{clientPhone(a.clientId) || a.clientEmail}</p>
+                             <p className="text-[10px] text-amber-500 mt-1">{a.service.name} • {formatPrice(a.service.price)}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">{t('With')} {a.barberName} {t('on')} {a.date} {t('at')} {a.time}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <button
                               onClick={() => onConfirmAppointment(a.id)}
                               className="p-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 cursor-pointer"
-                              title="Approve Booking"
+                              title={t('Approve Booking')}
                             >
                               <Check className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => onCancelAppointment(a.id)}
-                              className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
-                              title="Decline Booking"
+                              className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-600 dark:text-red-400 cursor-pointer"
+                              title={t('Decline Booking')}
                             >
                               <X className="h-4 w-4" />
                             </button>
@@ -580,25 +1044,55 @@ export default function AdminApp({
             <div className="space-y-6 animate-fadeIn">
               
               {/* Queue Controls Filter Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/35 p-4 rounded-2xl border border-slate-850">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-amber-500" />
-                  <span className="text-xs font-semibold text-slate-350 uppercase">Filter by Status:</span>
+              <div className="flex flex-col gap-4 bg-slate-900/35 p-4 rounded-2xl border border-slate-850">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs font-semibold text-slate-350 uppercase">{t('Filter by Status:')}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map(f => (
+                      <button
+                        key={f}
+                        onClick={() => setAppFilter(f)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border-none cursor-pointer whitespace-nowrap ${
+                          appFilter === f
+                            ? 'bg-amber-500 text-slate-950 shadow-sm'
+                            : 'bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                        }`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map(f => (
-                    <button
-                      key={f}
-                      onClick={() => setAppFilter(f)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border-none cursor-pointer ${
-                        appFilter === f
-                          ? 'bg-amber-500 text-slate-950 shadow-sm'
-                          : 'bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                      }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
+
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:border-t sm:border-slate-850/60 sm:pt-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs font-semibold text-slate-350 uppercase">{t('Filter by Date:')}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {([
+                      { v: 'all', l: t('All Time') },
+                      { v: 'today', l: t('Today') },
+                      { v: 'yesterday', l: t('Yesterday') },
+                      { v: 'week', l: t('Last Week') },
+                      { v: 'month', l: t('Last Month') },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.v}
+                        onClick={() => setAppPeriodFilter(opt.v)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border-none cursor-pointer whitespace-nowrap ${
+                          appPeriodFilter === opt.v
+                            ? 'bg-amber-500 text-slate-950 shadow-sm'
+                            : 'bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                        }`}
+                      >
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -608,20 +1102,20 @@ export default function AdminApp({
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-950/50 border-b border-slate-850 text-slate-400 font-mono tracking-wider uppercase">
-                        <th className="p-4 pl-6">Client Customer</th>
-                        <th className="p-4">Requested Service</th>
-                        <th className="p-4">Barber Stylist</th>
-                        <th className="p-4">Date / Time</th>
-                        <th className="p-4">Paid Charge</th>
-                        <th className="p-4">Booking State</th>
-                        <th className="p-4 pr-6 text-right">Quick Actions</th>
+                         <th className="p-4 pl-6">{t('Client Customer')}</th>
+                         <th className="p-4">{t('Requested Service')}</th>
+                         <th className="p-4">{t('Barber Stylist')}</th>
+                         <th className="p-4">{t('Date / Time')}</th>
+                         <th className="p-4">{t('Paid Charge')}</th>
+                         <th className="p-4">{t('Booking State')}</th>
+                         <th className="p-4 pr-6 text-right">{t('Quick Actions')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-850">
                       {filteredAppointments.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="p-12 text-center text-slate-500">
-                            No appointments found with state matching "{appFilter}".
+                            {t('No appointments found with the selected filters.')}
                           </td>
                         </tr>
                       ) : (
@@ -629,29 +1123,31 @@ export default function AdminApp({
                           <tr key={a.id} className="hover:bg-slate-900/20 transition-colors">
                             <td className="p-4 pl-6">
                               <p className="font-bold text-slate-200 font-sans">{a.clientName}</p>
-                              <p className="text-[10px] text-slate-500 mt-0.5">{a.clientEmail}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5 font-mono">{clientPhone(a.clientId) || a.clientEmail}</p>
                             </td>
                             <td className="p-4">
                               <p className="font-semibold text-amber-500">{a.service.name}</p>
-                              <p className="text-[10px] text-slate-500 mt-0.5">{a.service.duration} mins duration</p>
+                               <p className="text-[10px] text-slate-500 mt-0.5">{a.service.duration} {t('mins duration')}</p>
                             </td>
                             <td className="p-4 font-medium text-slate-300">{a.barberName}</td>
                             <td className="p-4">
                               <p className="font-bold text-slate-200 font-sans">{a.date}</p>
                               <p className="text-[10px] font-mono text-slate-500 mt-0.5">{a.time}</p>
                             </td>
-                            <td className="p-4 font-mono font-bold text-slate-300">
-                              ${a.price.toFixed(2)}
-                            </td>
+                             <td className="p-4 font-mono font-bold text-slate-300">
+                               {a.pointsRedeemed > 0
+                                 ? <span className="text-amber-400">{a.pointsRedeemed} {t('PTS')} <span className="text-[9px] font-sans text-slate-500 font-normal">({formatPrice(a.price)})</span></span>
+                                 : formatPrice(a.price)}
+                             </td>
                             <td className="p-4">
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 a.status === 'pending' ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' :
                                 a.status === 'confirmed' ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' :
                                 a.status === 'completed' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' :
                                 'bg-red-500/10 border border-red-500/20 text-red-400'
-                              }`}>
-                                {a.status}
-                              </span>
+                                 }`}>
+                                 {t(a.status)}
+                               </span>
                             </td>
                             <td className="p-4 pr-6 text-right">
                               <div className="flex items-center justify-end gap-2">
@@ -659,14 +1155,14 @@ export default function AdminApp({
                                   <>
                                     <button
                                       onClick={() => onConfirmAppointment(a.id)}
-                                      className="py-1 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
-                                    >
-                                      Approve
-                                    </button>
-                                    <button
-                                      onClick={() => onCancelAppointment(a.id)}
-                                      className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
-                                      title="Cancel Reservation"
+                                       className="py-1.5 px-3.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
+                                     >
+                                       {t('Approve')}
+                                     </button>
+                                     <button
+                                       onClick={() => onCancelAppointment(a.id)}
+                                       className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-600 dark:text-red-400 cursor-pointer"
+                                       title={t('Cancel Reservation')}
                                     >
                                       <X className="h-4.5 w-4.5" />
                                     </button>
@@ -677,14 +1173,14 @@ export default function AdminApp({
                                   <>
                                     <button
                                       onClick={() => onCompleteAppointment(a.id)}
-                                      className="py-1 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
-                                    >
-                                      Mark Complete
-                                    </button>
-                                    <button
-                                      onClick={() => onCancelAppointment(a.id)}
-                                      className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 cursor-pointer"
-                                      title="Decline Reservation"
+                                       className="py-1.5 px-3.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all border-none cursor-pointer"
+                                     >
+                                       {t('Mark Complete')}
+                                     </button>
+                                     <button
+                                       onClick={() => onCancelAppointment(a.id)}
+                                       className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-600 dark:text-red-400 cursor-pointer"
+                                       title={t('Decline Reservation')}
                                     >
                                       <X className="h-4.5 w-4.5" />
                                     </button>
@@ -692,11 +1188,11 @@ export default function AdminApp({
                                 )}
 
                                 {a.status === 'completed' && (
-                                  <span className="text-[10px] text-slate-500 font-mono font-medium">Archived Session</span>
+                                   <span className="text-[10px] text-slate-500 font-mono font-medium">{t('Archived Session')}</span>
                                 )}
 
                                 {a.status === 'cancelled' && (
-                                  <span className="text-[10px] text-red-500/50 font-mono font-medium">Cancelled</span>
+                                   <span className="text-[10px] text-red-500/50 font-mono font-medium">{t('Cancelled')}</span>
                                 )}
                               </div>
                             </td>
@@ -719,16 +1215,16 @@ export default function AdminApp({
               <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                   <PlusCircle className="h-4 w-4 text-amber-500" />
-                  Induct New Master Barber
+                  {t('Induct New Master Barber')}
                 </h3>
                 
                 <form onSubmit={handleCreateBarber} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Full Stylist Name</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Full Stylist Name')}</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Jack Pierce"
+                      placeholder={t('e.g. Jack Pierce')}
                       value={newBarberName}
                       onChange={e => setNewBarberName(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -736,10 +1232,10 @@ export default function AdminApp({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Primary Specialty</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Primary Specialty')}</label>
                     <input
                       type="text"
-                      placeholder="e.g. Skin Fades & Shaves"
+                      placeholder={t('e.g. Skin Fades & Shaves')}
                       value={newBarberSpecialty}
                       onChange={e => setNewBarberSpecialty(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -747,10 +1243,10 @@ export default function AdminApp({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Photo Avatar URL</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Photo Avatar URL')}</label>
                     <input
                       type="text"
-                      placeholder="Unsplash image URL..."
+                      placeholder={t('Unsplash image URL...')}
                       value={newBarberAvatar}
                       onChange={e => setNewBarberAvatar(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -763,15 +1259,15 @@ export default function AdminApp({
                       className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                     >
                       <Plus className="h-4 w-4" />
-                      Add Barber
+                      {t('Add Barber')}
                     </button>
                   </div>
 
                   <div className="md:col-span-2 space-y-1 mt-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Short Professional Bio</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Short Professional Bio')}</label>
                     <input
                       type="text"
-                      placeholder="Specialized in hot towel shaves with over 10 years experience..."
+                      placeholder={t('Specialized in hot towel shaves with over 10 years experience...')}
                       value={newBarberBio}
                       onChange={e => setNewBarberBio(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -779,32 +1275,10 @@ export default function AdminApp({
                   </div>
 
                   <div className="md:col-span-2 flex flex-col gap-1 mt-1 justify-center">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Weekly Shift Slots</span>
-                    <div className="flex gap-1.5 mt-1.5">
-                      {['09:00 AM', '10:00 AM', '11:00 AM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM'].map(time => {
-                        const isSel = newBarberTimes.includes(time);
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            onClick={() => {
-                              if (isSel) {
-                                setNewBarberTimes(newBarberTimes.filter(t => t !== time));
-                              } else {
-                                setNewBarberTimes([...newBarberTimes, time]);
-                              }
-                            }}
-                            className={`px-2 py-1.5 rounded-lg font-mono text-[9px] font-bold border cursor-pointer transition-all ${
-                              isSel 
-                                ? 'bg-amber-500/10 border-amber-500 text-amber-400 font-extrabold'
-                                : 'bg-slate-950 border-slate-850 text-slate-500 hover:border-slate-700'
-                            }`}
-                          >
-                            {time.split(' ')[0]}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">{t('Weekly Shift Slots')}</span>
+                    <p className="text-[11px] text-slate-500 font-mono mt-1.5">
+                      {t('Default schedule: 08:00 to 20:00, every 30 minutes.')}
+                    </p>
                   </div>
                 </form>
               </div>
@@ -818,7 +1292,7 @@ export default function AdminApp({
                     <button
                       onClick={() => onRemoveBarber(b.id)}
                       className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer opacity-0 group-hover:opacity-100 animate-fadeIn"
-                      title="Decommission Barber"
+                      title={t('Decommission Barber')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -833,20 +1307,20 @@ export default function AdminApp({
                       <div>
                         <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{b.name}</h4>
                         <div className="flex items-center gap-1 mt-1 text-xs">
-                          <span className="font-mono text-[10px] text-amber-500 font-bold">{b.rating.toFixed(1)}</span>
+                          <span className="font-mono text-[10px] text-amber-500 font-bold">{getBarberRating(b).toFixed(1)}</span>
                           <div className="flex items-center">
                             {[...Array(5)].map((_, i) => (
                               <Star
                                 key={i}
                                 className={`h-2.5 w-2.5 ${
-                                  i < Math.floor(b.rating)
+                                  i < Math.floor(getBarberRating(b))
                                     ? 'fill-amber-400 stroke-none'
                                     : 'fill-slate-800 stroke-none'
                                 }`}
                               />
                             ))}
                           </div>
-                          <span className="text-[9px] text-slate-500 font-mono">({b.reviewsCount} reviews)</span>
+                           <span className="text-[9px] text-slate-500 font-mono">({getBarberReviewCount(b)} {t('reviews')})</span>
                         </div>
                       </div>
                     </div>
@@ -857,7 +1331,7 @@ export default function AdminApp({
 
                     <div className="pt-4 border-t border-slate-850/65 space-y-3">
                       <div>
-                        <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold">Skills Catalog</span>
+                        <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold">{t('Skills Catalog')}</span>
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           <span className="px-2.5 py-0.5 rounded-lg bg-slate-950 border border-slate-850 text-slate-400 text-[10px]">
                             {b.specialty}
@@ -866,7 +1340,7 @@ export default function AdminApp({
                       </div>
 
                       <div>
-                        <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold">Shift Hours Slots</span>
+                        <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold">{t('Shift Hours Slots')}</span>
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           {b.availableTimes.map(time => (
                             <span key={time} className="px-1.5 py-0.5 rounded-lg bg-amber-500/5 text-amber-500/90 font-mono text-[9px] border border-amber-500/10 font-bold">
@@ -894,16 +1368,16 @@ export default function AdminApp({
                 <div className="lg:col-span-2 p-6 rounded-3xl bg-[#090d16] border border-slate-850 h-max">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                     <Sliders className="h-4 w-4 text-amber-500" />
-                    Register New Service Offering
+                    {editingService ? t('Edit Service Offering') : t('Register New Service Offering')}
                   </h3>
 
                   <form onSubmit={handleCreateService} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Service Name</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Service Name')}</label>
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Classic Beard Trim"
+                        placeholder={t('e.g. Classic Beard Trim')}
                         value={newServiceName}
                         onChange={e => setNewServiceName(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -911,25 +1385,25 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Category Group</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Category Group')}</label>
                       <select
                         value={newServiceCategory}
                         onChange={e => setNewServiceCategory(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-300 focus:outline-none focus:border-amber-500/40 cursor-pointer"
                       >
                         {categories.map(c => (
-                          <option key={c.id} value={c.name}>{c.name}</option>
+                          <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Retail Price ($ USD)</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Retail Price (TND)')}</label>
                       <input
                         type="number"
                         step="0.50"
                         required
-                        placeholder="35.00"
+                        placeholder={t('35.00')}
                         value={newServicePrice}
                         onChange={e => setNewServicePrice(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -937,11 +1411,11 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Duration (minutes)</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Duration (minutes)')}</label>
                       <input
                         type="number"
                         required
-                        placeholder="30"
+                        placeholder={t('30')}
                         value={newServiceDuration}
                         onChange={e => setNewServiceDuration(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -949,11 +1423,11 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Loyalty Points Credited</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Loyalty Points Credited')}</label>
                       <input
                         type="number"
                         required
-                        placeholder="15"
+                        placeholder={t('15')}
                         value={newServicePoints}
                         onChange={e => setNewServicePoints(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -961,36 +1435,73 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Points Cost to Redeem</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Points Cost to Redeem')}</label>
                       <input
                         type="number"
-                        required
-                        placeholder="150"
-                        value={newServicePointsCost}
-                        onChange={e => setNewServicePointsCost(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
+                        disabled
+                        readOnly
+                        value={newServicePrice ? Math.ceil(parseFloat(newServicePrice) / (pointValue > 0 ? pointValue : 0.01)) : ''}
+                        placeholder={t('Auto-calculated')}
+                        className="w-full bg-slate-950/60 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-500 placeholder-slate-600 focus:outline-none cursor-not-allowed select-none"
                       />
                     </div>
 
                     <div className="space-y-1 md:col-span-2">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Service Description</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Available Barbers')}</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                        {barbers.map(b => {
+                          const checked = newServiceBarbers.includes(b.id);
+                          return (
+                            <button
+                              type="button"
+                              key={b.id}
+                              onClick={() => setNewServiceBarbers(prev => checked ? prev.filter(id => id !== b.id) : [...prev, b.id])}
+                              className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border text-xs transition-all ${
+                                checked
+                                  ? 'bg-amber-500/10 border-amber-500/50 text-amber-400 font-semibold'
+                                  : 'bg-slate-950 border-slate-850 text-slate-400 hover:border-slate-700'
+                              }`}
+                            >
+                              <span className={`h-3.5 w-3.5 rounded border flex items-center justify-center text-[9px] ${checked ? 'bg-amber-500 border-amber-500 text-slate-950' : 'border-slate-700'}`}>
+                                {checked ? '✓' : ''}
+                              </span>
+                              <span className="truncate">{b.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {barbers.length === 0 && (
+                        <p className="text-[10px] text-slate-500 italic">{t('No barbers registered yet. Service will be available to all.')}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Service Description')}</label>
                       <textarea
                         rows={2}
-                        placeholder="Precision styling with premium hot shave lathers..."
+                        placeholder={t('Precision styling with premium hot shave lathers...')}
                         value={newServiceDesc}
                         onChange={e => setNewServiceDesc(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40 resize-none"
                       />
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 flex gap-2">
                       <button
                         type="submit"
-                        className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
+                        className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                       >
-                        <Plus className="h-4 w-4" />
-                        Create Service Entry
+                        {editingService ? <><Check className="h-4 w-4" />{t('Update Service')}</> : <><Plus className="h-4 w-4" />{t('Create Service Entry')}</>}
                       </button>
+                      {editingService && (
+                        <button
+                          type="button"
+                          onClick={cancelEditService}
+                          className="px-4 py-2.5 rounded-xl border border-slate-800 hover:border-slate-700 text-slate-400 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          {t('Cancel Edit')}
+                        </button>
+                      )}
                     </div>
                   </form>
                 </div>
@@ -999,16 +1510,16 @@ export default function AdminApp({
                 <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850 h-max">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                     <PlusCircle className="h-4 w-4 text-amber-500" />
-                    Create Service Category
+                    {t('Create Service Category')}
                   </h3>
 
                   <form onSubmit={handleCreateCategory} className="space-y-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Category Title</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Category Title')}</label>
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Coloring"
+                        placeholder={t('e.g. Coloring')}
                         value={newCatName}
                         onChange={e => setNewCatName(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1016,10 +1527,10 @@ export default function AdminApp({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Category Brief Description</label>
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Category Brief Description')}</label>
                       <input
                         type="text"
-                        placeholder="Premium beard treatments and lines..."
+                        placeholder={t('Premium beard treatments and lines...')}
                         value={newCatDesc}
                         onChange={e => setNewCatDesc(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1030,12 +1541,12 @@ export default function AdminApp({
                       type="submit"
                       className="w-full py-2.5 rounded-xl border border-slate-800 hover:border-amber-500/40 text-slate-350 hover:text-amber-400 text-xs font-bold uppercase tracking-wider transition-all bg-transparent cursor-pointer"
                     >
-                      Add Category Group
+                      {t('Add Category Group')}
                     </button>
                   </form>
 
                   <div className="mt-6 border-t border-slate-850 pt-5 space-y-2">
-                    <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold block">Current Directory Categories</span>
+                    <span className="text-[9px] uppercase font-mono tracking-wider text-slate-500 font-bold block">{t('Current Directory Categories')}</span>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {categories.map(c => (
                         <div key={c.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-850 text-xs text-slate-300">
@@ -1057,44 +1568,53 @@ export default function AdminApp({
 
               {/* Service Cards Listing */}
               <div className="space-y-6">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Existing Services Menu</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{t('Existing Services Menu')}</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {services.map(s => (
                     <div key={s.id} className="p-5 rounded-3xl bg-[#090d16] border border-slate-850 flex flex-col justify-between group relative">
                       
                       {/* Trash action */}
-                      <button
-                        onClick={() => onRemoveService(s.id)}
-                        className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-                        title="Delete Offering"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => startEditService(s)}
+                          className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 hover:scale-105 transition-all cursor-pointer"
+                          title={t('Edit Offering')}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onRemoveService(s.id)}
+                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer"
+                          title={t('Delete Offering')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
 
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[9px] font-mono uppercase bg-slate-950 text-slate-450 px-2.5 py-1 rounded-xl border border-slate-850 font-bold">
-                            {s.category}
+                            {categoryName(s.category)}
                           </span>
-                          <span className="text-xs font-mono font-bold text-amber-500 pr-6">${s.price.toFixed(2)}</span>
+                          <span className="text-xs font-mono font-bold text-amber-500 pr-6">{formatPrice(s.price)}</span>
                         </div>
 
                         <h5 className="text-xs font-black uppercase tracking-wider text-slate-200 mt-2">{s.name}</h5>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          {s.description || 'No description cataloged.'}
+                          {s.description || t('No description cataloged.')}
                         </p>
                       </div>
 
                       <div className="pt-4 border-t border-slate-850/65 mt-4 flex items-center justify-between">
                         <span className="flex items-center gap-1 text-[10px] text-slate-500">
-                          <Clock className="h-3 w-3 text-amber-500" />
-                          {s.duration} minutes
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] text-amber-400 font-bold font-mono">
-                          <Award className="h-3 w-3 text-amber-500" />
-                          +{s.pointsGiven} PTS
-                        </span>
+                           <Clock className="h-3 w-3 text-amber-500" />
+                           {s.duration} {t('minutes')}
+                         </span>
+                         <span className="flex items-center gap-1 text-[10px] text-amber-400 font-bold font-mono">
+                           <Award className="h-3 w-3 text-amber-500" />
+                           +{s.pointsGiven} {t('PTS')}
+                         </span>
                       </div>
 
                     </div>
@@ -1113,14 +1633,14 @@ export default function AdminApp({
               <div className="flex justify-between items-center bg-slate-900/35 p-4 rounded-2xl border border-slate-850">
                 <input
                   type="text"
-                  placeholder="Search clients by name, profile or email..."
+                  placeholder={t('Search clients by name, profile or email...')}
                   value={customerSearch}
                   onChange={e => setCustomerSearch(e.target.value)}
                   className="bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40 w-full max-w-md"
                 />
-                <span className="text-[10px] text-slate-500 font-mono tracking-wider font-bold">
-                  {filteredClients.length} Registered Accounts
-                </span>
+                  <span className="text-[10px] text-slate-500 font-mono tracking-wider font-bold">
+                   {filteredClients.length} {t('Registered Accounts')}
+                 </span>
               </div>
 
               {/* Grid of Client ledgers */}
@@ -1138,23 +1658,23 @@ export default function AdminApp({
                             {c.name.charAt(0)}
                           </div>
                           <div>
-                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{c.name}</h4>
-                            <p className="text-[10px] text-slate-500 font-mono">{c.email}</p>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{c.name}</h4>
+                        <p className="text-[10px] text-slate-500 font-mono">{c.phone}</p>
                           </div>
                         </div>
 
                         {/* Customer Ledger Specs */}
                         <div className="mt-5 grid grid-cols-2 gap-3 p-3.5 bg-slate-950/50 rounded-2xl border border-slate-850">
                           <div>
-                            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">Redeemable PTS</span>
+                            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Redeemable PTS')}</span>
                             <span className="text-sm font-black text-amber-500 font-mono mt-1 block">
-                              {c.loyaltyPoints} <strong className="text-[10px] text-slate-500 font-sans font-normal">pts</strong>
+                              {c.loyaltyPoints} <strong className="text-[10px] text-slate-500 font-sans font-normal">{t('pts')}</strong>
                             </span>
                           </div>
                           <div>
-                            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">Completed</span>
+                            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 block">{t('Completed')}</span>
                             <span className="text-sm font-black text-slate-250 font-mono mt-1 block">
-                              {completedCount} <strong className="text-[10px] text-slate-500 font-sans font-normal">vst</strong>
+                              {completedCount} <strong className="text-[10px] text-slate-500 font-sans font-normal">{t('vst')}</strong>
                             </span>
                           </div>
                         </div>
@@ -1171,19 +1691,19 @@ export default function AdminApp({
                             className="flex-1 py-1.5 px-3.5 rounded-xl border border-slate-800 hover:border-amber-500/30 text-slate-400 hover:text-amber-400 text-[10px] font-bold uppercase transition-all bg-transparent cursor-pointer flex items-center justify-center gap-1"
                           >
                             <Award className="h-3 w-3" />
-                            Adjust Points
+                            {t('Adjust Points')}
                           </button>
                           
                           <button
                             onClick={() => {
                               setSelectedClientForNotif(c.id);
-                              setNotifTitle('Exclusive Offer for You');
+                              setNotifTitle(t('Exclusive Offer for You'));
                               setNotifMessage('');
                             }}
                             className="flex-1 py-1.5 px-3.5 rounded-xl border border-slate-800 hover:border-amber-500/30 text-slate-400 hover:text-amber-400 text-[10px] font-bold uppercase transition-all bg-transparent cursor-pointer flex items-center justify-center gap-1"
                           >
                             <Bell className="h-3 w-3" />
-                            Push Alert
+                            {t('Push Alert')}
                           </button>
                         </div>
                       </div>
@@ -1206,16 +1726,16 @@ export default function AdminApp({
 
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-4 flex items-center gap-2">
                       <Award className="h-4 w-4 text-amber-500" />
-                      Adjust Loyalty Points Balance
+                      {t('Adjust Loyalty Points Balance')}
                     </h4>
                     
                     <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                      Manually add or deduct points for <strong className="text-slate-200">{users.find(u => u.id === pointsAdjustmentUser)?.name}</strong>. Input positive to award, or negative to debit.
+                      {t('Manually add or deduct points for')} <strong className="text-slate-200">{users.find(u => u.id === pointsAdjustmentUser)?.name}</strong>. {t('Input positive to award, or negative to debit.')}
                     </p>
 
                     <form onSubmit={handleAdjustPoints} className="space-y-4">
                       <div>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">Points Delta Amount</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">{t('Points Delta Amount')}</label>
                         <input
                           type="number"
                           required
@@ -1229,7 +1749,7 @@ export default function AdminApp({
                         type="submit"
                         className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none"
                       >
-                        Commit Adjustment
+                        {t('Commit Adjustment')}
                       </button>
                     </form>
                   </div>
@@ -1249,16 +1769,16 @@ export default function AdminApp({
 
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-4 flex items-center gap-2">
                       <Bell className="h-4 w-4 text-amber-500" />
-                      Dispatch Custom Customer Alert
+                      {t('Dispatch Custom Customer Alert')}
                     </h4>
 
                     <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                      Send a tailored banner message straight to <strong className="text-slate-200">{users.find(u => u.id === selectedClientForNotif)?.name}</strong>'s mobile notification inbox.
+                      {t("Send a tailored banner message straight to")} <strong className="text-slate-200">{users.find(u => u.id === selectedClientForNotif)?.name}</strong>{t("'s mobile notification inbox.")}
                     </p>
 
                     <form onSubmit={handleSendNotification} className="space-y-4">
                       <div>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">Message Topic / Subject</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">{t('Message Topic / Subject')}</label>
                         <input
                           type="text"
                           required
@@ -1269,11 +1789,11 @@ export default function AdminApp({
                       </div>
 
                       <div>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">Alert Message Body</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block mb-1">{t('Alert Message Body')}</label>
                         <textarea
                           rows={3}
                           required
-                          placeholder="Your exclusive 20% discount on haircuts is ready for use..."
+                          placeholder={t('Your exclusive 20% discount on haircuts is ready for use...')}
                           value={notifMessage}
                           onChange={e => setNotifMessage(e.target.value)}
                           className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40 resize-none"
@@ -1285,7 +1805,7 @@ export default function AdminApp({
                         className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                       >
                         <Send className="h-4 w-4" />
-                        Dispatch Push Alert
+                        {t('Dispatch Push Alert')}
                       </button>
                     </form>
                   </div>
@@ -1303,16 +1823,16 @@ export default function AdminApp({
               <div className="p-6 rounded-3xl bg-[#090d16] border border-slate-850">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                   <Percent className="h-4 w-4 text-amber-500" />
-                  Deploy New Promotional Campaign Offer
+                  {editingPromoId ? t('Edit Promotional Campaign Offer') : t('Deploy New Promotional Campaign Offer')}
                 </h3>
 
                 <form onSubmit={handleCreatePromotion} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Promo Banner Title</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Promo Banner Title')}</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. VIP Haircut Discount"
+                      placeholder={t('e.g. VIP Haircut Discount')}
                       value={promoTitle}
                       onChange={e => setPromoTitle(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1320,11 +1840,11 @@ export default function AdminApp({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Discount Amount Label</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Discount Amount Label')}</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. 20% OFF or $15 OFF"
+                      placeholder={t('e.g. 20% OFF or $15 OFF')}
                       value={promoDiscount}
                       onChange={e => setPromoDiscount(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1332,22 +1852,43 @@ export default function AdminApp({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Max Bookings Limit</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Max Bookings Limit')}</label>
                     <input
                       type="number"
                       required
-                      placeholder="100"
+                      placeholder={t('100')}
                       value={promoLimit}
                       onChange={e => setPromoLimit(e.target.value)}
                       className="w-full bg-[#03060a] border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
                     />
                   </div>
 
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Start Date')}</label>
+                    <input
+                      type="date"
+                      value={promoStart}
+                      onChange={e => setPromoStart(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500/40 [color-scheme:dark]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('End Date')}</label>
+                    <input
+                      type="date"
+                      value={promoEnd}
+                      onChange={e => setPromoEnd(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500/40 [color-scheme:dark]"
+                    />
+                  </div>
+
+
                   <div className="md:col-span-2 space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Offer Summary / Fine Print</label>
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Offer Summary / Fine Print')}</label>
                     <input
                       type="text"
-                      placeholder="e.g. Save 20% on any premium treatment with the crew..."
+                      placeholder={t('e.g. Save 20% on any premium treatment with the crew...')}
                       value={promoDesc}
                       onChange={e => setPromoDesc(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
@@ -1359,51 +1900,79 @@ export default function AdminApp({
                       type="submit"
                       className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                     >
-                      <Plus className="h-4 w-4" />
-                      Deploy Offer
-                    </button>
+                        {editingPromoId ? <><Check className="h-4 w-4" />{t('Save Changes')}</> : <><Plus className="h-4 w-4" />{t('Deploy Offer')}</>}
+                      </button>
+                    {editingPromoId && (
+                      <button
+                        type="button"
+                        onClick={resetPromoForm}
+                        className="w-full py-2.5 mt-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none"
+                      >
+                        {t('Cancel Edit')}
+                      </button>
+                    )}
                   </div>
                 </form>
               </div>
 
               {/* Active list of marketing promotions */}
               <div className="space-y-6">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Active Campaign Directory</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">{t('Active Campaign Directory')}</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {promotions.map(p => (
-                    <div key={p.id} className="p-6 rounded-3xl bg-[#090d16] border border-slate-850 flex flex-col justify-between group relative">
-                      
-                      {/* Trash action */}
-                      <button
-                        onClick={() => onRemovePromotion(p.id)}
-                        className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-                        title="Withdraw Promotion"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                  {promotions.map(p => {
+                    const isActive = !!p.active;
+                    return (
+                    <div key={p.id} className={`p-6 rounded-3xl bg-[#090d16] border flex flex-col justify-between group relative ${isActive ? 'border-slate-850' : 'border-slate-850/50 opacity-70'}`}>
+
+                      {/* Action buttons */}
+                      <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                        <button
+                          onClick={() => loadPromoForEdit(p)}
+                          className="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:scale-105 transition-all cursor-pointer"
+                          title={t('Edit Promotion')}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onRemovePromotion(p.id)}
+                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer"
+                          title={t('Withdraw Promotion')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
 
                       <div>
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="flex justify-between items-start mb-4 pr-20">
                           <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-[10px] font-bold">
                             {p.discount}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-mono">Limit: {p.bookingLimit} bookings</span>
+                          <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider font-mono border ${isActive ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-700/40 border-slate-600 text-slate-400'}`}>
+                            {isActive ? t('Displayed') : t('Hidden')}
+                          </span>
                         </div>
 
                         <h5 className="text-xs font-black uppercase tracking-wider text-slate-200">{p.title}</h5>
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                          {p.description || 'Exclusive VIP loyalty point campaign.'}
+                          {p.description || t('Exclusive VIP loyalty point campaign.')}
                         </p>
                       </div>
 
                       <div className="pt-4 border-t border-slate-850/65 mt-5 flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                        <span>Starts: {p.startDate}</span>
-                        <span>Redeemed: <strong className="text-slate-350">{p.bookingsCount}</strong> times</span>
+                        <span>{t('Redeemed:')} <strong className="text-slate-350">{p.bookingsCount}</strong> {t('times')}</span>
+                        <button
+                          onClick={() => onUpdatePromotion({ ...p, active: !isActive })}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold border transition-all cursor-pointer ${isActive ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400'}`}
+                        >
+                          {isActive ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          {isActive ? t('Hide') : t('Display')}
+                        </button>
                       </div>
 
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1417,3 +1986,6 @@ export default function AdminApp({
     </div>
   );
 }
+
+
+

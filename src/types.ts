@@ -7,9 +7,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone: string;
   role: 'client' | 'admin';
   loyaltyPoints: number;
   avatar: string;
+  password?: string;
 }
 
 export interface Barber {
@@ -33,6 +35,7 @@ export interface ServiceItem {
   pointsCost: number; // cost in points to redeem for free
   description: string;
   category: string;
+  barbersAllowed?: string[]; // IDs of barbers qualified to perform this service (empty = all)
 }
 
 export interface ServiceCategory {
@@ -90,5 +93,6 @@ export interface Promotion {
   endDate: string;
   bookingLimit: number;
   bookingsCount: number;
+  active: boolean;
 }
 

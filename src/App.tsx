@@ -1,33 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Scissors, Info } from 'lucide-react';
 
 import { User, Appointment, Barber, Review, Notification, ServiceItem, ServiceCategory, Promotion } from './types';
-import {
-  getStoredUsers,
-  saveStoredUsers,
-  getStoredCurrentUser,
-  saveStoredCurrentUser,
-  getStoredAppointments,
-  saveStoredAppointments,
-  getStoredBarbers,
-  saveStoredBarbers,
-  getStoredReviews,
-  saveStoredReviews,
-  getStoredNotifications,
-  saveStoredNotifications,
-  getStoredServices,
-  saveStoredServices,
-  getStoredCategories,
-  saveStoredCategories,
-  getStoredPointValue,
-  saveStoredPointValue,
-  getStoredPromotions,
-  saveStoredPromotions
-} from './utils/storage';
+import * as api from './api';
+import { SettingsProvider, useT } from './i18n';
 
 import AuthScreen from './components/AuthScreen';
 import NotificationBanner from './components/NotificationBanner';
 import AdminApp from './components/AdminApp';
+import ClientApp from './components/ClientApp';
+import SettingsToggle from './components/SettingsToggle';
 
 interface NotificationToast {
   id: string;
@@ -36,7 +18,21 @@ interface NotificationToast {
   type: 'booking' | 'system' | 'loyalty' | 'reminder' | 'review';
 }
 
-export default function App() {
+const CURRENT_USER_KEY = 'barber_app_current_user';
+
+function getStoredCurrentUser(): User | null {
+  const data = localStorage.getItem(CURRENT_USER_KEY);
+  if (!data) return null;
+  try { return JSON.parse(data); } catch { return null; }
+}
+
+function saveStoredCurrentUser(user: User | null) {
+  if (user) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  else localStorage.removeItem(CURRENT_USER_KEY);
+}
+
+function AppInner() {
+  const t = useT();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
@@ -47,291 +43,414 @@ export default function App() {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [pointValue, setPointValue] = useState<number>(0.01);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Triggering visual popup toast notification
   const [activeToast, setActiveToast] = useState<NotificationToast | null>(null);
+  // Tracks promo ids that were recently mutated locally so the 5s poll doesn't clobber them
+  const promoDirtyUntil = useRef<Record<string, number>>({});
 
-  // Load state on mount
   useEffect(() => {
-    setAllUsers(getStoredUsers());
-    setCurrentUser(getStoredCurrentUser());
-    setAppointments(getStoredAppointments());
-    setBarbers(getStoredBarbers());
-    setReviews(getStoredReviews());
-    setNotifications(getStoredNotifications());
-    setServices(getStoredServices());
-    setCategories(getStoredCategories());
-    setPointValue(getStoredPointValue());
-    setPromotions(getStoredPromotions());
+    const init = async () => {
+      try {
+        await api.seedDatabase();
+        const [u, b, a, r, n, s, c, pv, p] = await Promise.all([
+          api.fetchUsers(),
+          api.fetchBarbers(),
+          api.fetchAppointments(),
+          api.fetchReviews(),
+          api.fetchNotifications(),
+          api.fetchServices(),
+          api.fetchCategories(),
+          api.fetchPointValue(),
+          api.fetchPromotions(),
+        ]);
+        setAllUsers(u);
+        setBarbers(b);
+        setAppointments(a);
+        setReviews(r);
+        setNotifications(n);
+        setServices(s);
+        setCategories(c);
+        setPointValue(pv);
+        setPromotions(p);
+
+        const stored = getStoredCurrentUser();
+        if (stored) {
+          const freshUser = u.find((usr: User) => usr.id === stored.id);
+          setCurrentUser(freshUser || stored);
+        }
+      } catch (err) {
+        console.error('Failed to init from DB:', err);
+        const stored = getStoredCurrentUser();
+        if (stored) setCurrentUser(stored);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
+  // Live polling: keep dynamic data fresh so admin sees new client bookings
+  // and users see new notifications without a manual refresh.
+  useEffect(() => {
+    if (!currentUser) return;
+    const poll = async () => {
+      try {
+        const [a, n, u, r, b, s, c, p] = await Promise.all([
+          api.fetchAppointments(),
+          api.fetchNotifications(),
+          api.fetchUsers(),
+          api.fetchReviews(),
+          api.fetchBarbers(),
+          api.fetchServices(),
+          api.fetchCategories(),
+          api.fetchPromotions(),
+        ]);
+        setAppointments(a);
+        setNotifications(n);
+        setAllUsers(u);
+        setReviews(r);
+        setBarbers(b);
+        setServices(s);
+        setCategories(c);
+        const now = Date.now();
+        const dirty = promoDirtyUntil.current;
+        setPromotions(prev => {
+          // keep locally-mutated promos until their dirty window expires
+          const merged = p.map((np: Promotion) =>
+            dirty[np.id] && now < dirty[np.id] ? (prev.find(x => x.id === np.id) ?? np) : np
+          );
+          // include any promos present locally but missing from the fetch (e.g. just created)
+          prev.forEach(x => { if (!p.find(np => np.id === x.id)) merged.push(x); });
+          return merged;
+        });
+        // Keep the logged-in user's live data (e.g. loyalty points) in sync
+        const fresh = u.find((usr: User) => usr.id === currentUser.id);
+        if (fresh) setCurrentUser((prev: User | null) => prev ? { ...prev, ...fresh, password: undefined } : prev);
+      } catch {
+        /* ignore transient polling errors */
+      }
+    };
+    const id = setInterval(poll, 5000);
+    return () => clearInterval(id);
+  }, [currentUser]);
+
   const triggerToast = (title: string, message: string, type: NotificationToast['type']) => {
-    setActiveToast({
-      id: 'toast_' + Math.floor(Math.random() * 100000),
-      title,
-      message,
-      type
-    });
+    setActiveToast({ id: 'toast_' + Math.floor(Math.random() * 100000), title, message, type });
   };
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     saveStoredCurrentUser(user);
-    triggerToast('Secure Entrance Verified', `Access granted as ${user.name}.`, 'system');
+    triggerToast(t('Secure Entrance Verified'), t('Access granted as {name}.', { name: user.name }), 'system');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     saveStoredCurrentUser(null);
-    triggerToast('Access Expired', 'You have successfully logged out of the parlor portal.', 'system');
+    triggerToast(t('Access Expired'), t('You have successfully logged out of the parlor portal.'), 'system');
   };
 
-  const handleRegister = (name: string, email: string, role: 'client' | 'admin') => {
+  const handleRegister = async (name: string, email: string, phone: string, password: string, role: 'client' | 'admin') => {
     const newUser: User = {
       id: 'u_' + Math.floor(Math.random() * 100000),
-      name,
-      email,
-      role: role || 'admin',
+      name, email, phone: phone || '', role: role || 'client',
       loyaltyPoints: role === 'client' ? 25 : 0,
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
+      password
     };
-
-    const updated = [...allUsers, newUser];
+    const created = await api.createUser(newUser) as User;
+    const stored: User = { ...created, password: undefined };
+    const updated = [...allUsers, stored];
     setAllUsers(updated);
-    saveStoredUsers(updated);
-    
-    // Automatically log in
-    handleLogin(newUser);
+    handleLogin(stored);
   };
 
-  // ADMIN PANEL OPERATIONS
-  const handleConfirmAppointment = (id: string) => {
-    const updated = appointments.map(a => {
-      if (a.id === id) {
-        return { ...a, status: 'confirmed' as const };
-      }
-      return a;
-    });
-    setAppointments(updated);
-    saveStoredAppointments(updated);
-
-    const app = appointments.find(a => a.id === id);
-    if (app) {
-      const newNotif: Notification = {
-        id: 'notif_' + Math.floor(Math.random() * 100000),
-        clientId: app.clientId,
-        title: 'Appointment Approved!',
-        message: `Great news! Your booking with ${app.barberName} on ${app.date} at ${app.time} has been approved. See you at the salon!`,
-        date: new Date().toISOString(),
-        read: false,
-        type: 'booking'
-      };
-      const updatedNotifs = [...notifications, newNotif];
-      setNotifications(updatedNotifs);
-      saveStoredNotifications(updatedNotifs);
-      triggerToast('Appointment Approved', `Approved booking for ${app.clientName}.`, 'system');
-    }
+  const handleAddReview = async (barberId: string, rating: number, comment: string) => {
+    if (!currentUser) return;
+    const newReview: Review = {
+      id: 'r_' + Math.floor(Math.random() * 100000),
+      barberId, clientName: currentUser.name, rating, comment,
+      date: new Date().toISOString().slice(0, 10)
+    };
+    await api.createReview(newReview);
+    setReviews(prev => [...prev, newReview]);
   };
 
-  const handleCompleteAppointment = (id: string) => {
-    const updated = appointments.map(a => {
-      if (a.id === id) {
-        return { ...a, status: 'completed' as const };
-      }
-      return a;
-    });
-    setAppointments(updated);
-    saveStoredAppointments(updated);
-
-    const app = appointments.find(a => a.id === id);
-    if (app) {
-      const pointsCredited = app.service.pointsGiven;
-      setAllUsers(prevUsers => {
-        const nextUsers = prevUsers.map(u => {
-          if (u.id === app.clientId) {
-            const nextPoints = u.loyaltyPoints + pointsCredited;
-            return { ...u, loyaltyPoints: nextPoints };
-          }
-          return u;
-        });
-        saveStoredUsers(nextUsers);
-        return nextUsers;
-      });
-
-      const notif1: Notification = {
-        id: 'notif_' + Math.floor(Math.random() * 100000),
-        clientId: app.clientId,
-        title: `Loyalty Points Awarded (+${pointsCredited} PTS)`,
-        message: `Excellent! You earned ${pointsCredited} loyalty group points from completing your ${app.service.name}!`,
-        date: new Date().toISOString(),
-        read: false,
-        type: 'loyalty'
-      };
-
-      const notif2: Notification = {
-        id: 'notif_' + Math.floor(Math.random() * 100000),
-        clientId: app.clientId,
-        title: `Rate Your Experience with ${app.barberName}`,
-        message: `How was your trim? Please take a moment to rate your barber on your appointment logs.`,
-        date: new Date(Date.now() + 1000).toISOString(),
-        read: false,
-        type: 'review'
-      };
-
-      const nextNotifs = [...notifications, notif1, notif2];
-      setNotifications(nextNotifs);
-      saveStoredNotifications(nextNotifs);
-
-      triggerToast('Service Completed', `Marked complete. +${pointsCredited} loyalty points awarded.`, 'loyalty');
-    }
-  };
-
-  const handleCancelAppointment = (id: string) => {
-    const updated = appointments.map(a => {
-      if (a.id === id) {
-        return { ...a, status: 'cancelled' as const };
-      }
-      return a;
-    });
-    setAppointments(updated);
-    saveStoredAppointments(updated);
-
-    const app = appointments.find(a => a.id === id);
-    if (app) {
-      const newNotif: Notification = {
-        id: 'notif_' + Math.floor(Math.random() * 100000),
-        clientId: app.clientId,
-        title: 'Appointment Cancelled',
-        message: `Your appointment with ${app.barberName} has been cancelled by an administrator.`,
-        date: new Date().toISOString(),
-        read: false,
-        type: 'booking'
-      };
-      const updatedNotifs = [...notifications, newNotif];
-      setNotifications(updatedNotifs);
-      saveStoredNotifications(updatedNotifs);
-      triggerToast('Booking Cancelled', `Cancelled booking for ${app.clientName}.`, 'booking');
-    }
-  };
-
-  const handleSendCustomNotification = (clientId: string, title: string, message: string) => {
+  const handleAddAppointment = async (appointment: Appointment) => {
+    const created = await api.createAppointment(appointment);
+    setAppointments(prev => [...prev, created]);
     const newNotif: Notification = {
       id: 'notif_' + Math.floor(Math.random() * 100000),
-      clientId,
-      title,
-      message,
-      date: new Date().toISOString(),
-      read: false,
-      type: 'system'
+      clientId: appointment.clientId,
+      title: 'Booking Confirmed',
+      message: `Your booking with ${appointment.barberName} on ${appointment.date} at ${appointment.time} has been confirmed.`,
+      date: new Date().toISOString(), read: false, type: 'booking'
     };
-    const updated = [...notifications, newNotif];
-    setNotifications(updated);
-    saveStoredNotifications(updated);
-    triggerToast('Notification Sent', 'Custom client alert sent successfully.', 'system');
+    await api.createNotification(newNotif);
+    setNotifications(prev => [...prev, newNotif]);
   };
 
-  const handleUpdateClientPoints = (userId: string, pointsDelta: number) => {
-    const updated = allUsers.map(u => {
-      if (u.id === userId) {
-        const nextPoints = Math.max(0, u.loyaltyPoints + pointsDelta);
-        return { ...u, loyaltyPoints: nextPoints };
+  const handleClientCancelAppointment = async (id: string) => {
+    const target = appointments.find(a => a.id === id);
+    if (target && target.status !== 'completed' && target.status !== 'cancelled' && target.pointsRedeemed > 0) {
+      const client = allUsers.find(u => u.id === target.clientId);
+      if (client) {
+        const refunded = { ...client, loyaltyPoints: client.loyaltyPoints + target.pointsRedeemed };
+        await api.updateUser(refunded);
+        setAllUsers(prev => prev.map(u => u.id === refunded.id ? refunded : u));
+        if (currentUser && currentUser.id === refunded.id) setCurrentUser(refunded);
       }
-      return u;
-    });
-    setAllUsers(updated);
-    saveStoredUsers(updated);
-
-    const user = allUsers.find(u => u.id === userId);
-    if (user) {
+    }
+    await api.deleteAppointment(id);
+    setAppointments(prev => prev.filter(a => a.id !== id));
+    if (target) {
       const newNotif: Notification = {
         id: 'notif_' + Math.floor(Math.random() * 100000),
-        clientId: userId,
-        title: `Loyalty Balance Adjusted (${pointsDelta > 0 ? '+' : ''}${pointsDelta} PTS)`,
-        message: `An administrator has adjusted your loyalty points account balance. Your new balance is ${Math.max(0, user.loyaltyPoints + pointsDelta)} points.`,
-        date: new Date().toISOString(),
-        read: false,
-        type: 'loyalty'
+        clientId: target.clientId,
+        title: 'Appointment Cancelled',
+        message: `Your appointment with ${target.barberName} has been cancelled.`,
+        date: new Date().toISOString(), read: false, type: 'booking'
       };
-      const updatedNotifs = [...notifications, newNotif];
-      setNotifications(updatedNotifs);
-      saveStoredNotifications(updatedNotifs);
+      await api.createNotification(newNotif);
+      setNotifications(prev => [...prev, newNotif]);
     }
-    triggerToast('Points Adjusted', 'Customer loyalty balance updated.', 'loyalty');
   };
 
-  const handleAddBarber = (newBarber: Barber) => {
-    const updated = [...barbers, newBarber];
-    setBarbers(updated);
-    saveStoredBarbers(updated);
-    triggerToast('Barber Added', `${newBarber.name} joined the roster.`, 'system');
+  const handleMarkNotificationsRead = async () => {
+    const unread = notifications.filter(n => !n.read);
+    for (const n of unread) {
+      await api.markNotificationRead(n.id, true);
+    }
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const handleRemoveBarber = (id: string) => {
+  const handleRedeemPoints = async (pointsCost: number) => {
+    if (!currentUser) return;
+    const next = Math.max(0, currentUser.loyaltyPoints - pointsCost);
+    const updated = { ...currentUser, loyaltyPoints: next };
+    await api.updateUser(updated);
+    setCurrentUser(updated);
+    setAllUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+  };
+
+  const handleConfirmAppointment = async (id: string) => {
+    const app = appointments.find(a => a.id === id);
+    if (!app) return;
+    const updatedApp = { ...app, status: 'confirmed' as const };
+    await api.updateAppointment(updatedApp);
+    setAppointments(prev => prev.map(a => a.id === id ? updatedApp : a));
+
+    const newNotif: Notification = {
+      id: 'notif_' + Math.floor(Math.random() * 100000),
+      clientId: app.clientId,
+      title: 'Appointment Approved!',
+      message: `Great news! Your booking with ${app.barberName} on ${app.date} at ${app.time} has been approved. See you at the salon!`,
+      date: new Date().toISOString(), read: false, type: 'booking'
+    };
+    await api.createNotification(newNotif);
+    setNotifications(prev => [...prev, newNotif]);
+    triggerToast(t('Appointment Approved'), t('Approved booking for {clientName}.', { clientName: app.clientName }), 'system');
+  };
+
+  const handleCompleteAppointment = async (id: string) => {
+    const app = appointments.find(a => a.id === id);
+    if (!app) return;
+    const updatedApp = { ...app, status: 'completed' as const };
+    await api.updateAppointment(updatedApp);
+    setAppointments(prev => prev.map(a => a.id === id ? updatedApp : a));
+
+    const pointsCredited = app.service.pointsGiven;
+    const updatedUsers = allUsers.map(u =>
+      u.id === app.clientId ? { ...u, loyaltyPoints: u.loyaltyPoints + pointsCredited } : u
+    );
+    setAllUsers(updatedUsers);
+    const affectedUser = updatedUsers.find(u => u.id === app.clientId);
+    if (affectedUser) await api.updateUser(affectedUser);
+
+    const notif1: Notification = {
+      id: 'notif_' + Math.floor(Math.random() * 100000),
+      clientId: app.clientId,
+      title: `Loyalty Points Awarded (+${pointsCredited} PTS)`,
+      message: `Excellent! You earned ${pointsCredited} loyalty group points from completing your ${app.service.name}!`,
+      date: new Date().toISOString(), read: false, type: 'loyalty'
+    };
+    const notif2: Notification = {
+      id: 'notif_' + Math.floor(Math.random() * 100000),
+      clientId: app.clientId,
+      title: `Rate Your Experience with ${app.barberName}`,
+      message: `How was your trim? Please take a moment to rate your barber on your appointment logs.`,
+      date: new Date(Date.now() + 1000).toISOString(), read: false, type: 'review'
+    };
+    await api.createNotification(notif1);
+    await api.createNotification(notif2);
+    setNotifications(prev => [...prev, notif1, notif2]);
+    triggerToast(t('Service Completed'), t('Marked complete. +{pointsCredited} loyalty points awarded.', { pointsCredited }), 'loyalty');
+  };
+
+  const handleCancelAppointment = async (id: string) => {
+    const app = appointments.find(a => a.id === id);
+    if (!app) return;
+    const wasCompleted = app.status === 'completed';
+    const wasCancelled = app.status === 'cancelled';
+    const updatedApp = { ...app, status: 'cancelled' as const };
+    await api.updateAppointment(updatedApp);
+    setAppointments(prev => prev.map(a => a.id === id ? updatedApp : a));
+
+    if (!wasCompleted && !wasCancelled && app.pointsRedeemed > 0) {
+      const client = allUsers.find(u => u.id === app.clientId);
+      if (client) {
+        const refunded = { ...client, loyaltyPoints: client.loyaltyPoints + app.pointsRedeemed };
+        await api.updateUser(refunded);
+        setAllUsers(prev => prev.map(u => u.id === refunded.id ? refunded : u));
+        if (currentUser && currentUser.id === refunded.id) setCurrentUser(refunded);
+      }
+    }
+
+    const newNotif: Notification = {
+      id: 'notif_' + Math.floor(Math.random() * 100000),
+      clientId: app.clientId,
+      title: 'Appointment Cancelled',
+      message: `Your appointment with ${app.barberName} has been cancelled by an administrator.`,
+      date: new Date().toISOString(), read: false, type: 'booking'
+    };
+    await api.createNotification(newNotif);
+    setNotifications(prev => [...prev, newNotif]);
+    triggerToast(t('Booking Cancelled'), t('Cancelled booking for {clientName}.', { clientName: app.clientName }), 'booking');
+  };
+
+  const handleSendCustomNotification = async (clientId: string, title: string, message: string) => {
+    const newNotif: Notification = {
+      id: 'notif_' + Math.floor(Math.random() * 100000),
+      clientId, title, message,
+      date: new Date().toISOString(), read: false, type: 'system'
+    };
+    await api.createNotification(newNotif);
+    setNotifications(prev => [...prev, newNotif]);
+    triggerToast(t('Notification Sent'), t('Custom client alert sent successfully.'), 'system');
+  };
+
+  const handleUpdateClientPoints = async (userId: string, pointsDelta: number) => {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+    const nextPoints = Math.max(0, user.loyaltyPoints + pointsDelta);
+    const updatedUser = { ...user, loyaltyPoints: nextPoints };
+    await api.updateUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
+
+    const newNotif: Notification = {
+      id: 'notif_' + Math.floor(Math.random() * 100000),
+      clientId: userId,
+      title: `Loyalty Balance Adjusted (${pointsDelta > 0 ? '+' : ''}${pointsDelta} PTS)`,
+      message: `An administrator has adjusted your loyalty points account balance. Your new balance is ${nextPoints} points.`,
+      date: new Date().toISOString(), read: false, type: 'loyalty'
+    };
+    await api.createNotification(newNotif);
+    setNotifications(prev => [...prev, newNotif]);
+    triggerToast(t('Points Adjusted'), t('Customer loyalty balance updated.'), 'loyalty');
+  };
+
+  const handleAddBarber = async (newBarber: Barber) => {
+    await api.createBarber(newBarber);
+    setBarbers(prev => [...prev, newBarber]);
+    triggerToast(t('Barber Added'), t('{newBarberName} joined the roster.', { newBarberName: newBarber.name }), 'system');
+  };
+
+  const handleRemoveBarber = async (id: string) => {
     const target = barbers.find(b => b.id === id);
-    const updated = barbers.filter(b => b.id !== id);
-    setBarbers(updated);
-    saveStoredBarbers(updated);
-    if (target) {
-      triggerToast('Barber Removed', `${target.name} was removed from the roster.`, 'system');
-    }
+    await api.deleteBarber(id);
+    setBarbers(prev => prev.filter(b => b.id !== id));
+    if (target) triggerToast(t('Barber Removed'), t('{targetName} was removed from the roster.', { targetName: target.name }), 'system');
   };
 
-  const handleAddService = (newService: ServiceItem) => {
-    const updated = [...services, newService];
-    setServices(updated);
-    saveStoredServices(updated);
-    triggerToast('Service Added', `${newService.name} has been added.`, 'system');
+  const handleAddService = async (newService: ServiceItem) => {
+    await api.createService(newService);
+    setServices(prev => [...prev, newService]);
+    triggerToast(t('Service Added'), t('{newServiceName} has been added.', { newServiceName: newService.name }), 'system');
   };
 
-  const handleRemoveService = (id: string) => {
+  const handleUpdateService = async (updated: ServiceItem) => {
+    await api.updateService(updated);
+    setServices(prev => prev.map(s => s.id === updated.id ? updated : s));
+    triggerToast(t('Service Updated'), t('{newServiceName} has been updated.', { newServiceName: updated.name }), 'system');
+  };
+
+  const handleRemoveService = async (id: string) => {
     const target = services.find(s => s.id === id);
-    const updated = services.filter(s => s.id !== id);
-    setServices(updated);
-    saveStoredServices(updated);
-    if (target) {
-      triggerToast('Service Removed', `${target.name} has been removed.`, 'system');
-    }
+    await api.deleteService(id);
+    setServices(prev => prev.filter(s => s.id !== id));
+    if (target) triggerToast(t('Service Removed'), t('{targetName} has been removed.', { targetName: target.name }), 'system');
   };
 
-  const handleAddCategory = (newCategory: ServiceCategory) => {
-    const updated = [...categories, newCategory];
-    setCategories(updated);
-    saveStoredCategories(updated);
-    triggerToast('Category Added', `Category ${newCategory.name} was added.`, 'system');
+  const handleAddCategory = async (newCategory: ServiceCategory) => {
+    await api.createCategory(newCategory);
+    setCategories(prev => [...prev, newCategory]);
+    triggerToast(t('Category Added'), t('Category {newCategoryName} was added.', { newCategoryName: newCategory.name }), 'system');
   };
 
-  const handleRemoveCategory = (id: string) => {
+  const handleRemoveCategory = async (id: string) => {
     const target = categories.find(c => c.id === id);
-    const updated = categories.filter(c => c.id !== id);
-    setCategories(updated);
-    saveStoredCategories(updated);
-    if (target) {
-      triggerToast('Category Removed', `Category ${target.name} was removed.`, 'system');
-    }
+    await api.deleteCategory(id);
+    setCategories(prev => prev.filter(c => c.id !== id));
+    setServices(prev => prev.filter(s => s.category !== id));
+    if (target) triggerToast(t('Category Removed'), t('Category {targetName} and its services were removed.', { targetName: target.name }), 'system');
   };
 
-  const handleUpdatePointValue = (val: number) => {
+  const handleUpdatePointValue = async (val: number) => {
+    await api.updatePointValue(val);
     setPointValue(val);
-    saveStoredPointValue(val);
-    triggerToast('Rate Updated', `Exchange rate set to $${val.toFixed(2)} per point.`, 'system');
+    triggerToast(t('Rate Updated'), t('Exchange rate set to {val} TND per point.', { val: val.toFixed(2) }), 'system');
   };
 
-  const handleAddPromotion = (newPromo: Promotion) => {
-    const updated = [...promotions, newPromo];
-    setPromotions(updated);
-    saveStoredPromotions(updated);
-    triggerToast('Promo Created', `Campaign "${newPromo.title}" is now live.`, 'system');
+  const handleAddPromotion = async (newPromo: Promotion) => {
+    await api.createPromotion(newPromo);
+    setPromotions(prev => [...prev, newPromo]);
+    triggerToast(t('Promo Created'), t('Campaign "{newPromoTitle}" is now live.', { newPromoTitle: newPromo.title }), 'system');
   };
 
-  const handleRemovePromotion = (id: string) => {
+  const handleRemovePromotion = async (id: string) => {
     const target = promotions.find(p => p.id === id);
-    const updated = promotions.filter(p => p.id !== id);
-    setPromotions(updated);
-    saveStoredPromotions(updated);
-    if (target) {
-      triggerToast('Promo Removed', `Campaign "${target.title}" was removed.`, 'system');
-    }
+    await api.deletePromotion(id);
+    setPromotions(prev => prev.filter(p => p.id !== id));
+    if (target) triggerToast(t('Promo Removed'), t('Campaign "{targetTitle}" was removed.', { targetTitle: target.title }), 'system');
   };
+
+  const handleUpdatePromotion = async (updated: Promotion) => {
+    // Optimistic update first so the UI reflects the change immediately
+    setPromotions(prev => prev.map(p => p.id === updated.id ? updated : p));
+    promoDirtyUntil.current[updated.id] = Date.now() + 6000;
+    try {
+      const saved = await api.updatePromotion(updated);
+      setPromotions(prev => prev.map(p => p.id === updated.id ? saved : p));
+    } catch {
+      // revert on failure
+      setPromotions(prev => prev.map(p => p.id === updated.id ? { ...p } : p));
+    }
+    triggerToast(t('Promo Updated'), t('Campaign "{updatedTitle}" was saved.', { updatedTitle: updated.title }), 'system');
+  };
+
+  const handleUsePromotion = async (promoId: string) => {
+    const target = promotions.find(p => p.id === promoId);
+    if (!target) return;
+    const incremented: Promotion = { ...target, bookingsCount: (target.bookingsCount || 0) + 1 };
+    setPromotions(prev => prev.map(p => p.id === promoId ? incremented : p));
+    promoDirtyUntil.current[promoId] = Date.now() + 6000;
+    try {
+      await api.updatePromotion(incremented);
+    } catch { /* ignore */ }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-[#07090f] text-slate-100 min-h-screen flex items-center justify-center font-sans">
+        <SettingsToggle />
+        <div className="text-center">
+          <Scissors className="h-10 w-10 text-amber-500 mx-auto mb-4 animate-pulse" />
+          <p className="text-sm text-slate-400 font-mono uppercase tracking-widest">{t('LIVE METRICS ACTIVE')}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#07090f] text-slate-100 min-h-screen relative font-sans">
@@ -343,7 +462,7 @@ export default function App() {
           allUsers={allUsers}
           onRegister={handleRegister}
         />
-      ) : (
+      ) : currentUser.role === 'admin' ? (
         <AdminApp
           currentUser={currentUser}
           onLogout={handleLogout}
@@ -361,6 +480,7 @@ export default function App() {
           services={services}
           onAddService={handleAddService}
           onRemoveService={handleRemoveService}
+          onUpdateService={handleUpdateService}
           categories={categories}
           onAddCategory={handleAddCategory}
           onRemoveCategory={handleRemoveCategory}
@@ -369,8 +489,36 @@ export default function App() {
           promotions={promotions}
           onAddPromotion={handleAddPromotion}
           onRemovePromotion={handleRemovePromotion}
+          onUpdatePromotion={handleUpdatePromotion}
+        />
+      ) : (
+        <ClientApp
+          user={currentUser}
+          onLogout={handleLogout}
+          appointments={appointments}
+          barbers={barbers}
+          reviews={reviews}
+          notifications={notifications}
+          onAddReview={handleAddReview}
+          onAddAppointment={handleAddAppointment}
+          onCancelAppointment={handleClientCancelAppointment}
+          onMarkNotificationsRead={handleMarkNotificationsRead}
+          onRedeemPoints={handleRedeemPoints}
+          services={services}
+          categories={categories}
+          pointValue={pointValue}
+          promotions={promotions}
+          onUsePromotion={handleUsePromotion}
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <SettingsProvider>
+      <AppInner />
+    </SettingsProvider>
   );
 }
