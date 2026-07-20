@@ -108,6 +108,7 @@ export default function AdminApp({
   const [newServiceCategory, setNewServiceCategory] = useState(categories[0]?.id || '');
   const [newServicePoints, setNewServicePoints] = useState('15');
   const [newServiceDesc, setNewServiceDesc] = useState('');
+  const [newServiceBarbers, setNewServiceBarbers] = useState<string[]>(barbers.map(b => b.id));
 
   // Barber Config State
   const [newBarberName, setNewBarberName] = useState('');
@@ -285,13 +286,15 @@ export default function AdminApp({
       pointsGiven: parseInt(newServicePoints) || 15,
       pointsCost: computedPointsCost,
       description: newServiceDesc,
-      category: newServiceCategory || categories[0]?.id || 'Haircuts'
+      category: newServiceCategory || categories[0]?.id || 'Haircuts',
+      barbersAllowed: newServiceBarbers
     });
 
     setNewServiceName('');
     setNewServicePrice('');
     setNewServiceDuration('');
     setNewServiceDesc('');
+    setNewServiceBarbers(barbers.map(b => b.id));
   };
 
   const handleCreateBarber = (e: React.FormEvent) => {
@@ -1408,6 +1411,35 @@ export default function AdminApp({
                         placeholder={t('Auto-calculated')}
                         className="w-full bg-slate-950/60 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-500 placeholder-slate-600 focus:outline-none cursor-not-allowed select-none"
                       />
+                    </div>
+
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">{t('Available Barbers')}</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                        {barbers.map(b => {
+                          const checked = newServiceBarbers.includes(b.id);
+                          return (
+                            <button
+                              type="button"
+                              key={b.id}
+                              onClick={() => setNewServiceBarbers(prev => checked ? prev.filter(id => id !== b.id) : [...prev, b.id])}
+                              className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border text-xs transition-all ${
+                                checked
+                                  ? 'bg-amber-500/10 border-amber-500/50 text-amber-400 font-semibold'
+                                  : 'bg-slate-950 border-slate-850 text-slate-400 hover:border-slate-700'
+                              }`}
+                            >
+                              <span className={`h-3.5 w-3.5 rounded border flex items-center justify-center text-[9px] ${checked ? 'bg-amber-500 border-amber-500 text-slate-950' : 'border-slate-700'}`}>
+                                {checked ? '✓' : ''}
+                              </span>
+                              <span className="truncate">{b.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {barbers.length === 0 && (
+                        <p className="text-[10px] text-slate-500 italic">{t('No barbers registered yet. Service will be available to all.')}</p>
+                      )}
                     </div>
 
                     <div className="space-y-1 md:col-span-2">

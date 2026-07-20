@@ -225,6 +225,8 @@ const FR: Record<string, string> = {
   'Points Cost to Redeem': 'Coût en points pour échanger',
   'Auto-calculated': 'Calculé automatiquement',
   'Service Description': 'Description du service',
+  'Available Barbers': 'Coiffeurs disponibles',
+  'No barbers registered yet. Service will be available to all.': 'Aucun coiffeur enregistré pour le moment. Le service sera disponible pour tous.',
   'e.g. Classic Beard Trim': 'Ex. Taille de barbe classique',
   '35.00': '35,00',
   '30': '30',

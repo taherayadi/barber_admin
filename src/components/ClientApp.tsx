@@ -746,6 +746,10 @@ export default function ClientApp({
                         const qualifiedBarbers = barbers.filter((b) => {
                           if (!b.servicesAllowed || b.servicesAllowed.length === 0) return true;
                           return b.servicesAllowed.includes(selectedService.id);
+                        }).filter((b) => {
+                          const svcAllowed = selectedService.barbersAllowed;
+                          if (!svcAllowed || svcAllowed.length === 0) return true;
+                          return svcAllowed.includes(b.id);
                         });
                         if (qualifiedBarbers.length === 0) {
                           return (

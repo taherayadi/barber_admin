@@ -6,6 +6,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     id: r.id, name: r.name, price: r.price, duration: r.duration,
     pointsGiven: r.points_given, pointsCost: r.points_cost,
     description: r.description, category: r.category,
+    barbersAllowed: r.barbers_allowed ? JSON.parse(r.barbers_allowed) : [],
   }));
   return jsonResponse(services);
 };
@@ -13,7 +14,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const s = await context.request.json() as any;
   await context.env.DB.prepare(
-    'INSERT INTO services (id, name, price, duration, points_given, points_cost, description, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(s.id, s.name, s.price, s.duration, s.pointsGiven || 0, s.pointsCost || 0, s.description || '', s.category || '').run();
+    'INSERT INTO services (id, name, price, duration, points_given, points_cost, description, category, barbers_allowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(s.id, s.name, s.price, s.duration, s.pointsGiven || 0, s.pointsCost || 0, s.description || '', s.category || '', JSON.stringify(s.barbersAllowed || [])).run();
   return jsonResponse(s, 201);
 };

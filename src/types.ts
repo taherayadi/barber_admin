@@ -35,6 +35,7 @@ export interface ServiceItem {
   pointsCost: number; // cost in points to redeem for free
   description: string;
   category: string;
+  barbersAllowed?: string[]; // IDs of barbers qualified to perform this service (empty = all)
 }
 
 export interface ServiceCategory {
