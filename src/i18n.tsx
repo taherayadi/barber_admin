@@ -217,6 +217,9 @@ const FR: Record<string, string> = {
 
   // Services
   'Register New Service Offering': 'Enregistrer une nouvelle prestation',
+  'Edit Service Offering': 'Modifier la prestation',
+  'Update Service': 'Mettre à jour la prestation',
+  'Edit Offering': 'Modifier la prestation',
   'Service Name': 'Nom du service',
   'Category Group': 'Groupe de catégorie',
   'Retail Price (TND)': 'Prix de vente (TND)',
@@ -320,6 +323,8 @@ const FR: Record<string, string> = {
   '{targetName} was removed from the roster.': '{targetName} a été retiré de l\'équipe.',
   'Service Added': 'Service ajouté',
   '{newServiceName} has been added.': '{newServiceName} a été ajouté.',
+  'Service Updated': 'Service mis à jour',
+  '{newServiceName} has been updated.': '{newServiceName} a été mis à jour.',
   'Service Removed': 'Service retiré',
   '{targetName} has been removed.': '{targetName} a été retiré.',
   'Category Added': 'Catégorie ajoutée',

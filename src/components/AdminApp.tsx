@@ -46,6 +46,7 @@ interface AdminAppProps {
   services: ServiceItem[];
   onAddService: (newService: ServiceItem) => void;
   onRemoveService: (id: string) => void;
+  onUpdateService: (updated: ServiceItem) => void;
   categories: ServiceCategory[];
   onAddCategory: (newCategory: ServiceCategory) => void;
   onRemoveCategory: (id: string) => void;
@@ -74,6 +75,7 @@ export default function AdminApp({
   services,
   onAddService,
   onRemoveService,
+  onUpdateService,
   categories,
   onAddCategory,
   onRemoveCategory,
@@ -109,6 +111,7 @@ export default function AdminApp({
   const [newServicePoints, setNewServicePoints] = useState('15');
   const [newServiceDesc, setNewServiceDesc] = useState('');
   const [newServiceBarbers, setNewServiceBarbers] = useState<string[]>(barbers.map(b => b.id));
+  const [editingService, setEditingService] = useState<ServiceItem | null>(null);
 
   // Barber Config State
   const [newBarberName, setNewBarberName] = useState('');
@@ -272,14 +275,34 @@ export default function AdminApp({
   }, [appointments, salesBarberFilter, salesCategoryFilter, salesPeriodFilter, salesSearchQuery, salesSortOrder]);
 
   // Handle Form Submissions
+  const startEditService = (s: ServiceItem) => {
+    setEditingService(s);
+    setNewServiceName(s.name);
+    setNewServicePrice(String(s.price));
+    setNewServiceDuration(String(s.duration));
+    setNewServiceCategory(s.category);
+    setNewServicePoints(String(s.pointsGiven || 15));
+    setNewServiceDesc(s.description || '');
+    setNewServiceBarbers(s.barbersAllowed && s.barbersAllowed.length > 0 ? s.barbersAllowed : barbers.map(b => b.id));
+  };
+
+  const cancelEditService = () => {
+    setEditingService(null);
+    setNewServiceName('');
+    setNewServicePrice('');
+    setNewServiceDuration('');
+    setNewServiceDesc('');
+    setNewServiceBarbers(barbers.map(b => b.id));
+  };
+
   const handleCreateService = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newServiceName || !newServicePrice || !newServiceDuration) return;
 
     const price = parseFloat(newServicePrice);
     const computedPointsCost = pointValue > 0 ? Math.ceil(price / pointValue) : 150;
-    onAddService({
-      id: 's_' + Math.floor(Math.random() * 100000),
+    const serviceData: ServiceItem = {
+      id: editingService ? editingService.id : 's_' + Math.floor(Math.random() * 100000),
       name: newServiceName,
       price,
       duration: parseInt(newServiceDuration),
@@ -288,14 +311,17 @@ export default function AdminApp({
       description: newServiceDesc,
       category: newServiceCategory || categories[0]?.id || 'Haircuts',
       barbersAllowed: newServiceBarbers
-    });
+    };
 
-    setNewServiceName('');
-    setNewServicePrice('');
-    setNewServiceDuration('');
-    setNewServiceDesc('');
-    setNewServiceBarbers(barbers.map(b => b.id));
+    if (editingService) {
+      onUpdateService(serviceData);
+    } else {
+      onAddService(serviceData);
+    }
+
+    cancelEditService();
   };
+
 
   const handleCreateBarber = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1335,7 +1361,7 @@ export default function AdminApp({
                 <div className="lg:col-span-2 p-6 rounded-3xl bg-[#090d16] border border-slate-850 h-max">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-5 flex items-center gap-2">
                     <Sliders className="h-4 w-4 text-amber-500" />
-                    {t('Register New Service Offering')}
+                    {editingService ? t('Edit Service Offering') : t('Register New Service Offering')}
                   </h3>
 
                   <form onSubmit={handleCreateService} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1453,14 +1479,22 @@ export default function AdminApp({
                       />
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 flex gap-2">
                       <button
                         type="submit"
-                        className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
+                        className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-2"
                       >
-                        <Plus className="h-4 w-4" />
-                        {t('Create Service Entry')}
+                        {editingService ? <><Check className="h-4 w-4" />{t('Update Service')}</> : <><Plus className="h-4 w-4" />{t('Create Service Entry')}</>}
                       </button>
+                      {editingService && (
+                        <button
+                          type="button"
+                          onClick={cancelEditService}
+                          className="px-4 py-2.5 rounded-xl border border-slate-800 hover:border-slate-700 text-slate-400 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          {t('Cancel Edit')}
+                        </button>
+                      )}
                     </div>
                   </form>
                 </div>
@@ -1534,13 +1568,22 @@ export default function AdminApp({
                     <div key={s.id} className="p-5 rounded-3xl bg-[#090d16] border border-slate-850 flex flex-col justify-between group relative">
                       
                       {/* Trash action */}
-                      <button
-                        onClick={() => onRemoveService(s.id)}
-                        className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-                        title={t('Delete Offering')}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => startEditService(s)}
+                          className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 hover:scale-105 transition-all cursor-pointer"
+                          title={t('Edit Offering')}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onRemoveService(s.id)}
+                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:scale-105 transition-all cursor-pointer"
+                          title={t('Delete Offering')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
 
                       <div>
                         <div className="flex items-center justify-between mb-2">

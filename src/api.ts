@@ -72,6 +72,9 @@ export async function createService(s: ServiceItem): Promise<ServiceItem> {
 export async function deleteService(id: string): Promise<void> {
   await api(`/services/${id}`, { method: 'DELETE' });
 }
+export async function updateService(s: ServiceItem): Promise<ServiceItem> {
+  return api<ServiceItem>(`/services/${s.id}`, { method: 'PUT', body: JSON.stringify(s) });
+}
 
 // --- Categories ---
 export async function fetchCategories(): Promise<ServiceCategory[]> {

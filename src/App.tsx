@@ -369,6 +369,12 @@ function AppInner() {
     triggerToast(t('Service Added'), t('{newServiceName} has been added.', { newServiceName: newService.name }), 'system');
   };
 
+  const handleUpdateService = async (updated: ServiceItem) => {
+    await api.updateService(updated);
+    setServices(prev => prev.map(s => s.id === updated.id ? updated : s));
+    triggerToast(t('Service Updated'), t('{newServiceName} has been updated.', { newServiceName: updated.name }), 'system');
+  };
+
   const handleRemoveService = async (id: string) => {
     const target = services.find(s => s.id === id);
     await api.deleteService(id);
@@ -474,6 +480,7 @@ function AppInner() {
           services={services}
           onAddService={handleAddService}
           onRemoveService={handleRemoveService}
+          onUpdateService={handleUpdateService}
           categories={categories}
           onAddCategory={handleAddCategory}
           onRemoveCategory={handleRemoveCategory}
