@@ -1,0 +1,7 @@
+# Prevent stale caching of the app shell and assets so new deploys
+# are picked up immediately instead of serving an old cached build.
+/
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=0, must-revalidate
